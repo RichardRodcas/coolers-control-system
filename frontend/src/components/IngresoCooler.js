@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import api from '../api';
+import { ingresoCoolers } from '../api';
 import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
-import { styles } from './styles';
+import { styles } from '../styles/styles';
+import BarcodeScanner from './BarcodeScanner';
 
 function IngresoCooler() {
   const [codigos, setCodigos] = useState([]);
@@ -28,6 +29,7 @@ function IngresoCooler() {
   };
 
   const limpiarLista = () => {
+    if (codigos.length === 0) return;
     if (window.confirm(`¿Seguro que quieres borrar los ${codigos.length} códigos?`)) {
       setCodigos([]);
       setCodigoInput('');
@@ -45,7 +47,7 @@ function IngresoCooler() {
     }
 
     try {
-      const { data } = await api.post('/coolers/ingreso', { codigos });
+      const data = await ingresoCoolers(codigos); // ✅ sin token
 
       if (data.errores && data.errores.length > 0) {
         setFeedback({ tipo: 'error', mensaje: data.mensaje, errores: data.errores });
@@ -64,14 +66,17 @@ function IngresoCooler() {
     <div style={styles.card}>
       <h2 style={styles.title}>🏢 Ingreso de Coolers</h2>
 
+      {/* Scanner integrado */}
+      <BarcodeScanner onDetected={agregarCodigo} />
+
       <div style={styles.formGroup}>
-        <label style={styles.label}>Escanee o escriba código</label>
+        <label style={styles.label}>Escriba código manualmente</label>
         <input
           style={styles.input}
           value={codigoInput}
           onChange={(e) => setCodigoInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          autoFocus
+          placeholder="Ingrese código y presione Enter"
         />
       </div>
 
@@ -95,10 +100,10 @@ function IngresoCooler() {
           onClick={registrarIngreso}
           disabled={!puedeRegistrar}
         >
-          Registrar ingreso
+          <FaCheckCircle /> Registrar ingreso
         </button>
         <button style={styles.dangerBtn} onClick={limpiarLista}>
-          Limpiar lista
+          <FaTrash /> Limpiar lista
         </button>
       </div>
 
@@ -124,7 +129,5 @@ function IngresoCooler() {
     </div>
   );
 }
-
-
 
 export default IngresoCooler;

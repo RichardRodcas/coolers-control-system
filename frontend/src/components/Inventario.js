@@ -1,26 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import api from '../api';
-import { styles } from './styles';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getCoolers } from '../api'; 
+import { styles } from '../styles/styles';
 
 function Inventario() {
   const [coolers, setCoolers] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const cargarInventario = () => {
-    api.get('/coolers')
-      .then(res => setCoolers(res.data))
-      .catch(err => console.error('Error al cargar inventario', err));
-  };
+  // 👇 usamos useCallback para memoizar la función
+  const cargarInventario = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getCoolers(); // Axios ya envía el token automáticamente
+      setCoolers(data || []); // ✅ corregido
+    } catch (err) {
+      console.error('Error al cargar inventario', err);
+      setError(err.response?.data?.mensaje || 'No se pudo cargar el inventario');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     cargarInventario();
-  }, []);
+  }, [cargarInventario]);
 
-  // aplicar filtros combinados
   const filtrados = coolers.filter(c => {
-    const matchEstado = filtroEstado ? c.estado === filtroEstado : true;
-    const matchDisponibilidad = filtroDisponibilidad ? c.disponibilidad === filtroDisponibilidad : true;
+    const matchEstado = filtroEstado ? c.estado?.toLowerCase() === filtroEstado : true;
+    const matchDisponibilidad = filtroDisponibilidad ? c.disponibilidad?.toLowerCase() === filtroDisponibilidad : true;
     return matchEstado && matchDisponibilidad;
   });
 
@@ -48,7 +58,12 @@ function Inventario() {
 
       {/* Contadores */}
       <div style={styles.counterRow}>
-        {/* ... mismos cuadros de contadores que ya tienes ... */}
+        <div style={{ ...styles.counterBox, ...styles.counterOperativo }}>Operativos: {contadores.operativo}</div>
+        <div style={{ ...styles.counterBox, ...styles.counterInoperativo }}>Inoperativos: {contadores.inoperativo}</div>
+        <div style={{ ...styles.counterBox, ...styles.counterObservado }}>Observados: {contadores.observado}</div>
+        <div style={{ ...styles.counterBox, ...styles.counterLaboratorio }}>Laboratorio: {contadores.laboratorio}</div>
+        <div style={{ ...styles.counterBox, ...styles.counterCampo }}>Campo: {contadores.campo}</div>
+        <div style={{ ...styles.counterBox, ...styles.counterTotal }}>Total: {contadores.total}</div>
       </div>
 
       {/* Filtros */}
@@ -72,6 +87,11 @@ function Inventario() {
         </div>
         <button style={styles.primaryBtn} onClick={cargarInventario}>Refrescar</button>
       </div>
+
+      {/* Mensajes */}
+      {loading && <p>Cargando inventario...</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {filtrados.length === 0 && !loading && !error && <p>No hay coolers que coincidan con los filtros</p>}
 
       {/* Tabla */}
       <table style={styles.table}>

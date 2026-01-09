@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import api from '../api';
-import { styles } from './styles';
+import { createCooler, updateMantenimiento, deleteMantenimiento, getHistorial } from '../api';
+import { styles } from '../styles/styles';
+import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
 
 function MantenimientoCooler() {
   const [tab, setTab] = useState('crear');
@@ -15,10 +16,13 @@ function MantenimientoCooler() {
   const crearCooler = async () => {
     try {
       if (!codigo || !color) {
-        setMensaje('Debe ingresar código y color');
+        setMensaje('❌ Debe ingresar código y color');
         return;
       }
-      await api.post('/coolers/nuevo', { codigo, color });
+      const payload = { codigo, color };
+      console.log('Payload para crear cooler:', payload);
+
+      await createCooler(payload); // ✅ ya no pasamos accessToken
       setMensaje(`✅ Cooler ${codigo} creado con color ${color}`);
       setCodigo('');
       setColor('');
@@ -28,24 +32,23 @@ function MantenimientoCooler() {
     }
   };
 
-  // Buscar cooler antes de modificar
+  // Buscar cooler
   const buscarCooler = async () => {
     try {
       if (!codigo) {
-        setMensaje('Debe ingresar código');
+        setMensaje('❌ Debe ingresar código');
         return;
       }
-      // ⚠️ Tu backend devuelve historial en GET /coolers/:codigo
-      // Si quieres el objeto completo, ajusta backend. Por ahora mostramos historial.
-      const res = await api.get(`/coolers/${codigo}`);
-      if (Array.isArray(res.data)) {
-        // historial
-        setCoolerActual({ estado: res.data[res.data.length - 1]?.estado || '' });
+      const data = await getHistorial(codigo); // ✅ sin token
+      if (Array.isArray(data)) {
+        setCoolerActual({ estado: data[data.length - 1]?.estado || '' });
+        setEstado(data[data.length - 1]?.estado || '');
+        setObservacion(data[data.length - 1]?.observacion || '');
       } else {
-        setCoolerActual(res.data);
+        setCoolerActual(data);
+        setEstado(data?.estado || '');
+        setObservacion(data?.observacion || '');
       }
-      setEstado(coolerActual?.estado || '');
-      setObservacion(coolerActual?.observacion || '');
       setMensaje(`Cooler ${codigo} encontrado`);
     } catch (err) {
       setMensaje('❌ Cooler no encontrado');
@@ -57,14 +60,14 @@ function MantenimientoCooler() {
   const modificarCooler = async () => {
     try {
       if (!codigo || !estado) {
-        setMensaje('Debe ingresar código y estado');
+        setMensaje('❌ Debe ingresar código y estado');
         return;
       }
       if (estado === 'observado' && !observacion) {
-        setMensaje('Debe ingresar observación si el cooler está observado');
+        setMensaje('❌ Debe ingresar observación si el cooler está observado');
         return;
       }
-      await api.put(`/coolers/${codigo}/mantenimiento`, { estado, observacion });
+      await updateMantenimiento(codigo, { estado, observacion }); // ✅ sin token
       setMensaje(`✅ Cooler ${codigo} modificado a estado ${estado}${estado === 'observado' ? ` con observación: ${observacion}` : ''}`);
       setCodigo('');
       setEstado('');
@@ -80,10 +83,10 @@ function MantenimientoCooler() {
   const eliminarCooler = async () => {
     try {
       if (!codigo) {
-        setMensaje('Debe ingresar código');
+        setMensaje('❌ Debe ingresar código');
         return;
       }
-      await api.delete(`/coolers/${codigo}/mantenimiento`);
+      await deleteMantenimiento(codigo); // ✅ sin token
       setMensaje(`🗑️ Cooler ${codigo} eliminado`);
       setCodigo('');
     } catch (err) {
@@ -98,24 +101,9 @@ function MantenimientoCooler() {
 
       {/* Pestañas */}
       <div style={styles.tabRow}>
-        <button
-          style={tab === 'crear' ? styles.activeTab : styles.tab}
-          onClick={() => setTab('crear')}
-        >
-          Crear Cooler
-        </button>
-        <button
-          style={tab === 'modificar' ? styles.activeTab : styles.tab}
-          onClick={() => setTab('modificar')}
-        >
-          Modificar Cooler
-        </button>
-        <button
-          style={tab === 'eliminar' ? styles.activeTab : styles.tab}
-          onClick={() => setTab('eliminar')}
-        >
-          Eliminar Cooler
-        </button>
+        <button style={tab === 'crear' ? styles.activeTab : styles.tab} onClick={() => setTab('crear')}>Crear Cooler</button>
+        <button style={tab === 'modificar' ? styles.activeTab : styles.tab} onClick={() => setTab('modificar')}>Modificar Cooler</button>
+        <button style={tab === 'eliminar' ? styles.activeTab : styles.tab} onClick={() => setTab('eliminar')}>Eliminar Cooler</button>
       </div>
 
       {/* Contenido según pestaña */}
@@ -124,23 +112,13 @@ function MantenimientoCooler() {
           <div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Código</label>
-              <input
-                style={styles.input}
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-              />
+              <input style={styles.input} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Color</label>
-              <input
-                style={styles.input}
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-              />
+              <input style={styles.input} value={color} onChange={(e) => setColor(e.target.value)} />
             </div>
-            <button style={styles.primaryBtn} onClick={crearCooler}>
-              Crear
-            </button>
+            <button style={styles.primaryBtn} onClick={crearCooler}>Crear</button>
           </div>
         )}
 
@@ -148,25 +126,15 @@ function MantenimientoCooler() {
           <div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Código</label>
-              <input
-                style={styles.input}
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-              />
+              <input style={styles.input} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
             </div>
-            <button style={styles.primaryBtn} onClick={buscarCooler}>
-              Buscar
-            </button>
+            <button style={styles.primaryBtn} onClick={buscarCooler}>Buscar</button>
 
             {coolerActual && (
               <div style={{ marginTop: 16 }}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Estado actual: {coolerActual.estado}</label>
-                  <select
-                    style={styles.input}
-                    value={estado}
-                    onChange={(e) => setEstado(e.target.value)}
-                  >
+                  <select style={styles.input} value={estado} onChange={(e) => setEstado(e.target.value)}>
                     <option value="">Seleccione</option>
                     <option value="operativo">Operativo</option>
                     <option value="inoperativo">Inoperativo</option>
@@ -176,16 +144,10 @@ function MantenimientoCooler() {
                 {estado === 'observado' && (
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Observación</label>
-                    <input
-                      style={styles.input}
-                      value={observacion}
-                      onChange={(e) => setObservacion(e.target.value)}
-                    />
+                    <input style={styles.input} value={observacion} onChange={(e) => setObservacion(e.target.value)} />
                   </div>
                 )}
-                <button style={styles.primaryBtn} onClick={modificarCooler}>
-                  Guardar cambios
-                </button>
+                <button style={styles.primaryBtn} onClick={modificarCooler}>Guardar cambios</button>
               </div>
             )}
           </div>
@@ -195,23 +157,19 @@ function MantenimientoCooler() {
           <div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Código</label>
-              <input
-                style={styles.input}
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-              />
+              <input style={styles.input} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
             </div>
-            <button style={styles.dangerBtn} onClick={eliminarCooler}>
-              Eliminar
-            </button>
+            <button style={styles.dangerBtn} onClick={eliminarCooler}><FaTrash /> Eliminar</button>
           </div>
         )}
       </div>
 
       {/* Mensajes */}
       {mensaje && (
-        <div style={{ marginTop: 16, color: '#1976d2', fontWeight: 'bold' }}>
-          {mensaje}
+        <div style={mensaje.startsWith('✅') ? styles.okBox : styles.errorBox}>
+          {mensaje.startsWith('✅') && <FaCheckCircle color="#2e7d32" />}
+          {mensaje.startsWith('❌') && <FaExclamationTriangle color="#c62828" />}
+          <span style={{ marginLeft: 8 }}>{mensaje}</span>
         </div>
       )}
     </div>

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import api from '../api';
+import { salidaCoolers } from '../api';
 import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
-import { styles } from './styles';
+import { styles } from '../styles/styles';
+import BarcodeScanner from './BarcodeScanner';
 
 function SalidaCooler() {
   const [codigos, setCodigos] = useState([]);
   const [codigoInput, setCodigoInput] = useState('');
   const [cliente, setCliente] = useState('');
   const [ordenTrabajo, setOrdenTrabajo] = useState('');
-  const [feedback, setFeedback] = useState(null); // { tipo: 'ok'|'error', mensaje, errores: [] }
+  const [feedback, setFeedback] = useState(null);
 
   const agregarCodigo = (codigo) => {
     const limpio = (codigo || '').trim();
@@ -30,6 +31,7 @@ function SalidaCooler() {
   };
 
   const limpiarLista = () => {
+    if (codigos.length === 0) return;
     if (window.confirm(`¿Seguro que quieres borrar los ${codigos.length} códigos?`)) {
       setCodigos([]);
       setCodigoInput('');
@@ -42,49 +44,29 @@ function SalidaCooler() {
     setFeedback(null);
 
     if (!cliente.trim() || !ordenTrabajo.trim()) {
-      setFeedback({
-        tipo: 'error',
-        mensaje: 'Cliente y orden de trabajo son obligatorios',
-        errores: []
-      });
+      setFeedback({ tipo: 'error', mensaje: 'Cliente y orden de trabajo son obligatorios', errores: [] });
       return;
     }
     if (codigos.length === 0) {
-      setFeedback({
-        tipo: 'error',
-        mensaje: 'Debes ingresar al menos un código',
-        errores: []
-      });
+      setFeedback({ tipo: 'error', mensaje: 'Debes ingresar al menos un código', errores: [] });
       return;
     }
 
     try {
-      const { data } = await api.post('/coolers/salida', { codigos, cliente, ordenTrabajo });
+      const data = await salidaCoolers(codigos, cliente, ordenTrabajo); // ✅ sin token
 
-      // Si el backend devuelve errores, mostramos cuadro rojo
       if (data.errores && data.errores.length > 0) {
-        setFeedback({
-          tipo: 'error',
-          mensaje: data.mensaje,
-          errores: data.errores
-        });
+        setFeedback({ tipo: 'error', mensaje: data.mensaje, errores: data.errores });
       } else {
-        setFeedback({
-          tipo: 'ok',
-          mensaje: data.mensaje,
-          errores: []
-        });
-        setCodigos([]); // limpiar lista solo si todo salió bien
+        setFeedback({ tipo: 'ok', mensaje: data.mensaje, errores: [] });
+        setCodigos([]);
+        setCliente('');
+        setOrdenTrabajo('');
       }
-
     } catch (err) {
       const msg = err.response?.data?.mensaje || 'Error al registrar salida';
       const errores = err.response?.data?.errores || [];
-      setFeedback({
-        tipo: 'error',
-        mensaje: msg,
-        errores
-      });
+      setFeedback({ tipo: 'error', mensaje: msg, errores });
     }
   };
 
@@ -103,14 +85,17 @@ function SalidaCooler() {
         </div>
       </div>
 
+      {/* Scanner integrado */}
+      <BarcodeScanner onDetected={agregarCodigo} />
+
       <div style={styles.formGroup}>
-        <label style={styles.label}>Escanee o escriba código</label>
+        <label style={styles.label}>Escriba código manualmente</label>
         <input
           style={styles.input}
           value={codigoInput}
           onChange={(e) => setCodigoInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          autoFocus
+          placeholder="Ingrese código y presione Enter"
         />
       </div>
 
@@ -134,24 +119,20 @@ function SalidaCooler() {
           onClick={registrarSalida}
           disabled={!puedeRegistrar}
         >
-          Registrar salida
+          <FaCheckCircle /> Registrar salida
         </button>
         <button style={styles.dangerBtn} onClick={limpiarLista}>
-          Limpiar lista
+          <FaTrash /> Limpiar lista
         </button>
       </div>
 
-      {/* Feedback block */}
       {feedback && (
-        <div
-          style={feedback.tipo === 'ok' ? styles.okBox : styles.errorBox}
-        >
+        <div style={feedback.tipo === 'ok' ? styles.okBox : styles.errorBox}>
           <div style={styles.feedbackHeader}>
             {feedback.tipo === 'ok' && <FaCheckCircle color="#2e7d32" />}
             {feedback.tipo === 'error' && <FaExclamationTriangle color="#c62828" />}
             <strong style={{ marginLeft: 8 }}>{feedback.mensaje}</strong>
           </div>
-
           {feedback.errores.length > 0 && (
             <ul style={styles.feedbackList}>
               {feedback.errores.map((d, idx) => (
@@ -167,7 +148,5 @@ function SalidaCooler() {
     </div>
   );
 }
-
-
 
 export default SalidaCooler;
