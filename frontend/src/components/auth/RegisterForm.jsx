@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { styles } from '../../styles/styles';
 
 export default function RegisterForm({ onSuccess }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'operador' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'operador_ingreso' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -29,7 +29,7 @@ export default function RegisterForm({ onSuccess }) {
       setSuccess('Usuario registrado correctamente ✅');
 
       // resetear formulario
-      setForm({ name: '', email: '', password: '', role: 'operador' });
+      setForm({ name: '', email: '', password: '', role: 'operador_ingreso' });
 
       // ❌ Eliminado el login automático
       if (onSuccess) onSuccess();
@@ -87,7 +87,8 @@ export default function RegisterForm({ onSuccess }) {
             onChange={handleChange}
             style={styles.input}
           >
-            <option value="operador">Operador</option>
+            <option value="operador_ingreso">Operador Ingreso</option>
+            <option value="operador_salida">Operador Salida</option>
             <option value="admin">Administrador</option>
           </select>
         </div>

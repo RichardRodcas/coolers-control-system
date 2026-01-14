@@ -1,5 +1,13 @@
 export const styles = {
   // Contenedor principal
+  cardContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '16px',
+    maxWidth: 1200,
+    margin: '20px auto',
+  },
+
   card: {
     display: 'flex',
     flexDirection: 'column',
@@ -7,11 +15,10 @@ export const styles = {
     border: '1px solid #2196F3',
     borderRadius: 8,
     padding: 20,
-    maxWidth: 1200,
-    margin: '20px auto',
     backgroundColor: '#f9f9f9',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+    boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
   },
+
   title: { color: '#1976d2', marginBottom: 12 },
   subtitle: { marginTop: 16, color: '#37474f' },
 
@@ -24,7 +31,8 @@ export const styles = {
     padding: 8,
     borderRadius: 4,
     border: '1px solid #cfd8dc',
-    background: 'white'
+    background: 'white',
+    marginBottom: 12
   },
 
   // Botones básicos
@@ -50,7 +58,8 @@ export const styles = {
     border: 'none',
     padding: '8px 12px',
     borderRadius: 4,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    marginRight: "15px"
   },
 
   // Botones principales de navegación
@@ -93,6 +102,10 @@ export const styles = {
     background: 'linear-gradient(45deg, #00897b, #26a69a)', // turquesa (usuarios)
     color: '#fff'
   },
+  btnClientes: {
+    backgroundColor: "#4caf50",
+    color: "#fff"
+  },
   navBtnHover: {
     transform: 'translateY(-2px)',
     boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
@@ -123,22 +136,32 @@ export const styles = {
   counterCampo: { backgroundColor: '#6a1b9a' },
 
   // Tabla
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: 16,
-    fontSize: '14px'
-  },
-  th: {
-    background: '#eeeeee',
-    textAlign: 'left',
-    padding: '8px',
-    borderBottom: '1px solid #ccc'
-  },
-  td: {
-    padding: '8px',
-    borderBottom: '1px solid #eee'
-  },
+tableWrapper: {
+  display: 'flex',
+  justifyContent: 'center', // centra la tabla horizontalmente
+   marginTop: 20
+},
+table: {
+  width: 'auto',            // 👈 evita ocupar 100% para que se centre
+  borderCollapse: 'collapse',
+  fontSize: '14px'
+},
+th: {
+  background: '#eeeeee',
+  textAlign: 'left',
+  padding: '8px',
+  borderBottom: '1px solid #ccc'
+},
+tr: {
+  textAlign: 'left',
+  verticalAlign: 'middle'
+},
+td: {
+  padding: '8px',
+  borderBottom: '1px solid #eee',
+  textAlign: 'left',
+  verticalAlign: 'middle'
+},
 
   // Timeline (Trazabilidad)
   timeline: {

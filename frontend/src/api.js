@@ -43,8 +43,8 @@ export const ingresoCoolers = async (codigos) => {
 };
 
 // ======================= SALIDA =======================
-export const salidaCoolers = async (codigos, cliente, ordenTrabajo) => {
-  const res = await api.post("/coolers/salida", { codigos, cliente, ordenTrabajo });
+export const salidaCoolers = async (codigos, clienteRuc, ordenTrabajo) => {
+  const res = await api.post("/coolers/salida", { codigos, clienteRuc, ordenTrabajo });
   return res.data;
 };
 
@@ -61,15 +61,16 @@ export const updateMantenimiento = async (codigo, data) => {
   return res.data;
 };
 
-export const deleteMantenimiento = async (codigo) => {
-  const res = await api.delete(`/coolers/${codigo}/mantenimiento`);
+export const deleteCooler = async (codigo) => {
+  const res = await api.delete(`/coolers/${codigo}`);
   return res.data;
 };
 
 // ======================= TRAZABILIDAD =======================
-export const getHistorial = async (codigo) => {
-  const res = await api.get(`/coolers/${codigo}`);
-  return res.data?.data || []; // 👈 devuelve directamente el array historial
+// ======================= TRAZABILIDAD =======================
+export const getTrazabilidad = async (codigo) => {
+  const res = await api.get(`/coolers/${codigo}/trazabilidad`);
+  return res.data?.data || { detalle: null, historial: [] };
 };
 
 export const getDetalleCooler = async (codigo) => {

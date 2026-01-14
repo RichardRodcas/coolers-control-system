@@ -15,7 +15,7 @@ function Inventario() {
     setError('');
     try {
       const data = await getCoolers(); // Axios ya envía el token automáticamente
-      setCoolers(data || []); // ✅ corregido
+      setCoolers(data || []); 
     } catch (err) {
       console.error('Error al cargar inventario', err);
       setError(err.response?.data?.mensaje || 'No se pudo cargar el inventario');
@@ -29,22 +29,26 @@ function Inventario() {
   }, [cargarInventario]);
 
   const filtrados = coolers.filter(c => {
-    const matchEstado = filtroEstado ? c.estado?.toLowerCase() === filtroEstado : true;
-    const matchDisponibilidad = filtroDisponibilidad ? c.disponibilidad?.toLowerCase() === filtroDisponibilidad : true;
+    const matchEstado = filtroEstado 
+      ? c.estado?.toLowerCase() === filtroEstado.toLowerCase() 
+      : true;
+    const matchDisponibilidad = filtroDisponibilidad 
+      ? c.disponibilidad?.toLowerCase() === filtroDisponibilidad.toLowerCase() 
+      : true;
     return matchEstado && matchDisponibilidad;
   });
 
   const contadores = {
     total: coolers.length,
-    operativo: coolers.filter(c => c.estado === 'operativo').length,
-    inoperativo: coolers.filter(c => c.estado === 'inoperativo').length,
-    observado: coolers.filter(c => c.estado === 'observado').length,
-    laboratorio: coolers.filter(c => c.disponibilidad === 'laboratorio').length,
-    campo: coolers.filter(c => c.disponibilidad === 'campo').length
+    operativo: coolers.filter(c => c.estado?.toLowerCase() === 'operativo').length,
+    inoperativo: coolers.filter(c => c.estado?.toLowerCase() === 'inoperativo').length,
+    observado: coolers.filter(c => c.estado?.toLowerCase() === 'observado').length,
+    laboratorio: coolers.filter(c => c.disponibilidad?.toLowerCase() === 'laboratorio').length,
+    campo: coolers.filter(c => c.disponibilidad?.toLowerCase() === 'campo').length
   };
 
   const colorFila = (estado) => {
-    switch (estado) {
+    switch (estado?.toLowerCase()) {
       case 'operativo': return '#e8f5e9';
       case 'observado': return '#fffde7';
       case 'inoperativo': return '#ffebee';
@@ -53,39 +57,60 @@ function Inventario() {
   };
 
   return (
-    <div style={styles.card}>
+    <>
       <h2 style={styles.title}>📦 Inventario General</h2>
 
-      {/* Contadores */}
-      <div style={styles.counterRow}>
-        <div style={{ ...styles.counterBox, ...styles.counterOperativo }}>Operativos: {contadores.operativo}</div>
-        <div style={{ ...styles.counterBox, ...styles.counterInoperativo }}>Inoperativos: {contadores.inoperativo}</div>
-        <div style={{ ...styles.counterBox, ...styles.counterObservado }}>Observados: {contadores.observado}</div>
-        <div style={{ ...styles.counterBox, ...styles.counterLaboratorio }}>Laboratorio: {contadores.laboratorio}</div>
-        <div style={{ ...styles.counterBox, ...styles.counterCampo }}>Campo: {contadores.campo}</div>
-        <div style={{ ...styles.counterBox, ...styles.counterTotal }}>Total: {contadores.total}</div>
-      </div>
+      {/* Contadores + Filtros en paralelo */}
+      <div style={styles.cardContainer}>
+        <div style={styles.card}>
+          <div style={styles.counterRow}>
+            <div style={{ ...styles.counterBox, ...styles.counterOperativo }}>Operativos: {contadores.operativo}</div>
+            <div style={{ ...styles.counterBox, ...styles.counterInoperativo }}>Inoperativos: {contadores.inoperativo}</div>
+            <div style={{ ...styles.counterBox, ...styles.counterObservado }}>Observados: {contadores.observado}</div>
+            <div style={{ ...styles.counterBox, ...styles.counterLaboratorio }}>Laboratorio: {contadores.laboratorio}</div>
+            <div style={{ ...styles.counterBox, ...styles.counterCampo }}>Campo: {contadores.campo}</div>
+            <div style={{ ...styles.counterBox, ...styles.counterTotal }}>Total: {contadores.total}</div>
+          </div>
+        </div>
 
-      {/* Filtros */}
-      <div style={styles.formRow}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Filtrar por estado</label>
-          <select style={styles.input} value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
-            <option value="">Todos</option>
-            <option value="operativo">Operativo</option>
-            <option value="observado">Observado</option>
-            <option value="inoperativo">Inoperativo</option>
-          </select>
+        <div style={styles.card}>
+          <div style={styles.formRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Filtrar por estado</label>
+              <select 
+                style={styles.input} 
+                value={filtroEstado} 
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                aria-label="Filtrar por estado"
+              >
+                <option value="">Todos</option>
+                <option value="operativo">Operativo</option>
+                <option value="observado">Observado</option>
+                <option value="inoperativo">Inoperativo</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Filtrar por disponibilidad</label>
+              <select 
+                style={styles.input} 
+                value={filtroDisponibilidad} 
+                onChange={(e) => setFiltroDisponibilidad(e.target.value)}
+                aria-label="Filtrar por disponibilidad"
+              >
+                <option value="">Todas</option>
+                <option value="laboratorio">Laboratorio</option>
+                <option value="campo">Campo</option>
+              </select>
+            </div>
+            <button 
+              style={styles.primaryBtn} 
+              onClick={cargarInventario}
+              aria-label="Refrescar inventario"
+            >
+              Refrescar
+            </button>
+          </div>
         </div>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Filtrar por disponibilidad</label>
-          <select style={styles.input} value={filtroDisponibilidad} onChange={(e) => setFiltroDisponibilidad(e.target.value)}>
-            <option value="">Todas</option>
-            <option value="laboratorio">Laboratorio</option>
-            <option value="campo">Campo</option>
-          </select>
-        </div>
-        <button style={styles.primaryBtn} onClick={cargarInventario}>Refrescar</button>
       </div>
 
       {/* Mensajes */}
@@ -94,29 +119,31 @@ function Inventario() {
       {filtrados.length === 0 && !loading && !error && <p>No hay coolers que coincidan con los filtros</p>}
 
       {/* Tabla */}
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Código</th>
-            <th style={styles.th}>Color</th>
-            <th style={styles.th}>Estado</th>
-            <th style={styles.th}>Disponibilidad</th>
-            <th style={styles.th}>Observación</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtrados.map(c => (
-            <tr key={c.codigo} style={{ background: colorFila(c.estado) }}>
-              <td style={styles.td}>{c.codigo}</td>
-              <td style={styles.td}>{c.color || '-'}</td>
-              <td style={styles.td}>{c.estado}</td>
-              <td style={styles.td}>{c.disponibilidad || '-'}</td>
-              <td style={styles.td}>{c.observacion || '-'}</td>
+      <div style={styles.card}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Código</th>
+              <th style={styles.th}>Color</th>
+              <th style={styles.th}>Estado</th>
+              <th style={styles.th}>Disponibilidad</th>
+              <th style={styles.th}>Observación</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {filtrados.map(c => (
+              <tr key={c.codigo} style={{ background: colorFila(c.estado) }}>
+                <td style={styles.td}>{c.codigo}</td>
+                <td style={styles.td}>{c.color || '-'}</td>
+                <td style={styles.td}>{c.estado}</td>
+                <td style={styles.td}>{c.disponibilidad || '-'}</td>
+                <td style={styles.td}>{c.observacion || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

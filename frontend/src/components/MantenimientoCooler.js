@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createCooler, updateMantenimiento, deleteMantenimiento, getHistorial } from '../api';
+import { createCooler, updateMantenimiento, deleteCooler, getDetalleCooler } from '../api';
 import { styles } from '../styles/styles';
 import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
 
@@ -20,9 +20,7 @@ function MantenimientoCooler() {
         return;
       }
       const payload = { codigo, color };
-      console.log('Payload para crear cooler:', payload);
-
-      await createCooler(payload); // ✅ ya no pasamos accessToken
+      await createCooler(payload);
       setMensaje(`✅ Cooler ${codigo} creado con color ${color}`);
       setCodigo('');
       setColor('');
@@ -35,22 +33,24 @@ function MantenimientoCooler() {
   // Buscar cooler
   const buscarCooler = async () => {
     try {
-      if (!codigo) {
+      const codigoNorm = codigo.trim().toUpperCase();
+      if (!codigoNorm) {
         setMensaje('❌ Debe ingresar código');
         return;
       }
-      const data = await getHistorial(codigo); // ✅ sin token
-      if (Array.isArray(data)) {
-        setCoolerActual({ estado: data[data.length - 1]?.estado || '' });
-        setEstado(data[data.length - 1]?.estado || '');
-        setObservacion(data[data.length - 1]?.observacion || '');
+
+      const cooler = await getDetalleCooler(codigoNorm);
+      if (cooler) {
+        setCoolerActual(cooler);
+        setEstado(cooler.estado || '');
+        setObservacion(cooler.observacion || '');
+        setMensaje(`✅ Cooler ${codigoNorm} encontrado`);
       } else {
-        setCoolerActual(data);
-        setEstado(data?.estado || '');
-        setObservacion(data?.observacion || '');
+        setCoolerActual(null);
+        setMensaje('❌ Cooler no encontrado');
       }
-      setMensaje(`Cooler ${codigo} encontrado`);
     } catch (err) {
+      setCoolerActual(null);
       setMensaje('❌ Cooler no encontrado');
       console.error(err);
     }
@@ -67,7 +67,7 @@ function MantenimientoCooler() {
         setMensaje('❌ Debe ingresar observación si el cooler está observado');
         return;
       }
-      await updateMantenimiento(codigo, { estado, observacion }); // ✅ sin token
+      await updateMantenimiento(codigo.trim().toUpperCase(), { estado, observacion });
       setMensaje(`✅ Cooler ${codigo} modificado a estado ${estado}${estado === 'observado' ? ` con observación: ${observacion}` : ''}`);
       setCodigo('');
       setEstado('');
@@ -86,7 +86,7 @@ function MantenimientoCooler() {
         setMensaje('❌ Debe ingresar código');
         return;
       }
-      await deleteMantenimiento(codigo); // ✅ sin token
+      await deleteCooler(codigo.trim().toUpperCase());
       setMensaje(`🗑️ Cooler ${codigo} eliminado`);
       setCodigo('');
     } catch (err) {
@@ -141,6 +141,19 @@ function MantenimientoCooler() {
                     <option value="observado">Observado</option>
                   </select>
                 </div>
+
+                {/* Mostrar último movimiento y mantenimiento */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>
+                    Último movimiento: {coolerActual.ultimo_movimiento ? new Date(coolerActual.ultimo_movimiento).toLocaleString() : 'N/A'}
+                  </label>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>
+                    Último mantenimiento: {coolerActual.ultimo_mantenimiento ? new Date(coolerActual.ultimo_mantenimiento).toLocaleString() : 'N/A'}
+                  </label>
+                </div>
+
                 {estado === 'observado' && (
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Observación</label>

@@ -2,11 +2,9 @@ import React from 'react';
 import { styles } from '../styles/styles';
 import { useAuth } from '../AuthContext';
 
-function MenuPrincipal({ onNavigate }) {
-  const { isAuthed, user, logout } = useAuth();
-
+function MenuPrincipal({ onNavigate, children }) {
+  const { isAuthed, user } = useAuth();
   const userName = isAuthed ? user?.name : 'Invitado';
-  const puedeOperar = user?.role === 'operador' || user?.role === 'admin';
 
   const handleNavigate = (vista) => {
     if (typeof onNavigate === 'function') {
@@ -17,81 +15,94 @@ function MenuPrincipal({ onNavigate }) {
   };
 
   return (
-    <div style={styles.card}>
-      {/* Barra superior con saludo */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h3 style={{ margin: 0, color: '#1976d2' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: 225 }}>
+      {/* Sidebar lateral */}
+      <aside
+        style={{
+          width: 220,
+          backgroundColor: '#f5f5f5',
+          padding: 16,
+          borderRight: '1px solid #ddd',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <h3 style={{ marginBottom: 24, color: '#1976d2' }}>
           Bienvenido, {userName} {isAuthed && `(${user?.role})`}
         </h3>
-        
-      </div>
 
-      {/* Barra de navegación */}
-      <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-        {puedeOperar && (
+        {/* ✅ Aquí estaba el error: antes usabas text-align:center */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {(user?.role === 'operador_ingreso' || user?.role === 'admin') && (
+            <button
+              style={{ ...styles.navBtn, ...styles.btnIngreso }}
+              onClick={() => handleNavigate('ingreso')}
+            >
+              🏢 Ingreso
+            </button>
+          )}
+
+          {(user?.role === 'operador_salida' || user?.role === 'admin') && (
+            <button
+              style={{ ...styles.navBtn, ...styles.btnSalida }}
+              onClick={() => handleNavigate('salida')}
+            >
+              🚚 Salida
+            </button>
+          )}
+
           <button
-            style={{ ...styles.navBtn, ...styles.btnIngreso }}
-            onClick={() => handleNavigate('ingreso')}
-            aria-label="Ingreso de coolers"
+            style={{ ...styles.navBtn, ...styles.btnInventario }}
+            onClick={() => handleNavigate('inventario')}
           >
-            🏢 Ingreso
+            📦 Inventario
           </button>
-        )}
 
-        {puedeOperar && (
           <button
-            style={{ ...styles.navBtn, ...styles.btnSalida }}
-            onClick={() => handleNavigate('salida')}
-            aria-label="Salida de coolers"
+            style={{ ...styles.navBtn, ...styles.btnTrazabilidad }}
+            onClick={() => handleNavigate('trazabilidad')}
           >
-            🚚 Salida
+            🔎 Trazabilidad
           </button>
-        )}
 
-        <button
-          style={{ ...styles.navBtn, ...styles.btnInventario }}
-          onClick={() => handleNavigate('inventario')}
-          aria-label="Inventario general"
-        >
-          📦 Inventario
-        </button>
+          {user?.role === 'admin' && (
+            <>
+              <button
+                style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
+                onClick={() => handleNavigate('mantenimiento')}
+              >
+                🛠️ Mantenimiento Coolers
+              </button>
 
-        <button
-          style={{ ...styles.navBtn, ...styles.btnTrazabilidad }}
-          onClick={() => handleNavigate('trazabilidad')}
-          aria-label="Trazabilidad de coolers"
-        >
-          🔎 Trazabilidad
-        </button>
+              <button
+                style={{ ...styles.navBtn, ...styles.btnRegistro }}
+                onClick={() => handleNavigate('registroUsuario')}
+              >
+                📝 Registro Usuario
+              </button>
 
-        {user?.role === 'admin' && (
-          <button
-            style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
-            onClick={() => handleNavigate('mantenimiento')}
-            aria-label="Mantenimiento de coolers"
-          >
-            🛠️ Mantenimiento
-          </button>
-        )}
+              <button
+                style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
+                onClick={() => handleNavigate('mantenimientoUsuario')}
+              >
+                👥 Mantenimiento Usuario
+              </button>
 
-        {user?.role === 'admin' && (
-          <button
-            style={{ ...styles.navBtn, ...styles.btnRegistro }}
-            onClick={() => handleNavigate('registroUsuario')}
-            aria-label="Registro de usuarios"
-          >
-            📝 Registro Usuario
-          </button>
-        )}
-        {user?.role === 'admin' && (
-  <button
-    style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
-    onClick={() => handleNavigate('mantenimientoUsuario')}
-  >
-    👥 Mantenimiento Usuario
-  </button>
-)}  
-      </nav>
+              <button
+                style={{ ...styles.navBtn, ...styles.btnClientes }}
+                onClick={() => handleNavigate('registroClientes')}
+              >
+                👤 Clientes
+              </button>
+            </>
+          )}
+        </nav>
+      </aside>
+
+      {/* Contenido principal */}
+      <main style={{ flex: 1, padding: 24 }}>
+        {children}
+      </main>
     </div>
   );
 }

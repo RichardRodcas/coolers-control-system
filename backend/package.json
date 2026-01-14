@@ -1,24 +1,33 @@
 {
   "name": "control-coolers",
   "version": "1.0.0",
-  "description": "",
+  "description": "Sistema de control de coolers TYPSA",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node backend/authServer.js"
+    "auth": "node authServer.js",
+    "dev": "nodemon server.js",
+    "start:auth": "node authServer.js",
+    "start:api": "node server.js",
+    "start": "concurrently \"npm run start:auth\" \"npm run start:api\""
   },
   "keywords": [],
-  "author": "",
+  "author": "Richard",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "concurrently": "^9.2.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.1.2"
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }

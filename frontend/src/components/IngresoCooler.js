@@ -63,37 +63,53 @@ function IngresoCooler() {
   };
 
   return (
-    <div style={styles.card}>
-      <h2 style={styles.title}>🏢 Ingreso de Coolers</h2>
+  <>
+    <h2 style={styles.title}>🏢 Ingreso de Coolers</h2>
 
-      {/* Scanner integrado */}
-      <BarcodeScanner onDetected={agregarCodigo} />
+    {/* Bloques en paralelo */}
+    <div style={styles.cardContainer}>
+      {/* Bloque 1: Scanner + input manual */}
+      <div style={styles.card}>
+        {/* Scanner integrado */}
+        <BarcodeScanner onDetected={agregarCodigo} />
 
-      <div style={styles.formGroup}>
-        <label style={styles.label}>Escriba código manualmente</label>
-        <input
-          style={styles.input}
-          value={codigoInput}
-          onChange={(e) => setCodigoInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ingrese código y presione Enter"
-        />
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Escriba código manualmente</label>
+          <input
+            style={styles.input}
+            value={codigoInput}
+            onChange={(e) => setCodigoInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ingrese código y presione Enter"
+          />
+        </div>
       </div>
 
-      <h3 style={styles.subtitle}>Coolers en este ingreso ({codigos.length}):</h3>
-      <ul style={styles.list}>
-        {codigos.map(c => (
-          <li key={c} style={styles.listItem}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FaCheckCircle color="#2e7d32" /> {c}
-            </span>
-            <button style={styles.deleteBtn} onClick={() => quitarCodigo(c)}>
-              <FaTrash /> Quitar
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* Bloque 2: Lista de códigos */}
+      <div style={styles.card}>
+        <h3 style={styles.subtitle}>
+          Coolers en este ingreso ({codigos.length}):
+        </h3>
+        <ul style={styles.list}>
+          {codigos.map((c) => (
+            <li key={c} style={styles.listItem}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FaCheckCircle color="#2e7d32" /> {c}
+              </span>
+              <button
+                style={styles.deleteBtn}
+                onClick={() => quitarCodigo(c)}
+              >
+                <FaTrash /> Quitar
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
 
+    {/* Acciones */}
+    <div style={styles.card}>
       <div style={styles.actions}>
         <button
           style={puedeRegistrar ? styles.primaryBtn : styles.disabledBtn}
@@ -107,19 +123,26 @@ function IngresoCooler() {
         </button>
       </div>
 
+      {/* Feedback */}
       {feedback && (
         <div style={feedback.tipo === 'ok' ? styles.okBox : styles.errorBox}>
           <div style={styles.feedbackHeader}>
             {feedback.tipo === 'ok' && <FaCheckCircle color="#2e7d32" />}
-            {feedback.tipo === 'error' && <FaExclamationTriangle color="#c62828" />}
+            {feedback.tipo === 'error' && (
+              <FaExclamationTriangle color="#c62828" />
+            )}
             <strong style={{ marginLeft: 8 }}>{feedback.mensaje}</strong>
           </div>
           {feedback.errores.length > 0 && (
             <ul style={styles.feedbackList}>
               {feedback.errores.map((d, idx) => (
                 <li key={idx} style={styles.feedbackItemErr}>
-                  <span><strong>Código:</strong> {d.codigo}</span>
-                  <span><strong>Mensaje:</strong> {d.mensaje}</span>
+                  <span>
+                    <strong>Código:</strong> {d.codigo}
+                  </span>
+                  <span>
+                    <strong>Mensaje:</strong> {d.mensaje}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -127,7 +150,8 @@ function IngresoCooler() {
         </div>
       )}
     </div>
-  );
+  </>
+);
 }
 
 export default IngresoCooler;

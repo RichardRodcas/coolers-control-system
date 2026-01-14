@@ -15,6 +15,7 @@ import SalidaCooler from './components/SalidaCooler';
 import MantenimientoCooler from './components/MantenimientoCooler';
 import Trazabilidad from './components/Trazabilidad';
 import MantenimientoUsuario from './components/MantenimientoUsuario';
+import RegistroClientes from './components/RegistroClientes';
 
 // Wrapper para proteger vistas según login y rol
 function Private({ roles = [], children }) {
@@ -32,9 +33,13 @@ function Dashboard() {
   const renderVista = () => {
     switch (vista) {
       case 'ingreso':
-        return <IngresoCooler />;
+        return user?.role === 'operador_ingreso' || user?.role === 'admin'
+          ? <IngresoCooler />
+          : <div>Acceso denegado</div>;
       case 'salida':
-        return <SalidaCooler />;
+        return user?.role === 'operador_salida' || user?.role === 'admin'
+          ? <SalidaCooler />
+          : <div>Acceso denegado</div>;
       case 'inventario':
         return <Inventario />;
       case 'trazabilidad':
@@ -43,53 +48,53 @@ function Dashboard() {
         return user?.role === 'admin' ? <MantenimientoCooler /> : <div>Acceso denegado</div>;
       case 'registroUsuario':
         return user?.role === 'admin' ? <RegisterForm /> : <div>Acceso denegado</div>;
+      case 'registroClientes':
+        return user?.role === 'admin' ? <RegistroClientes /> : <div>Acceso denegado</div>;
+      case 'mantenimientoUsuario':
+        return user?.role === 'admin' ? <MantenimientoUsuario /> : <div>Acceso denegado</div>;
       default:
         return <Inventario />;
-        case 'mantenimientoUsuario':
-         return user?.role === 'admin'
-        ? <MantenimientoUsuario />
-        : <div>Acceso denegado</div>;
-        }
+    }
   };
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
       {/* Header fijo */}
       <header style={{
-  position: 'sticky',
-  top: 0,
-  zIndex: 1000,
-  backgroundColor: '#ffffff',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-  padding: '10px 20px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between'
-}}>
-  {/* Zona izquierda vacía */}
-  <div style={{ width: 150 }}></div>
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        backgroundColor: '#ffffff',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+        padding: '10px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        {/* Zona izquierda vacía */}
+        <div style={{ width: 150 }}></div>
 
-  {/* Centro: logo + título */}
-  <div style={{ textAlign: 'center', flexGrow: 1 }}>
-    <img
-      src="/logo-typsa.png"
-      alt="Logo TYPSA"
-      style={{ height: 70, marginBottom: 8 }}
-    />
-    <h1 style={{ color: '#1976d2', margin: 0 }}>⚙️ Control de Coolers TYPSA</h1>
-  </div>
+        {/* Centro: logo + título */}
+        <div style={{ textAlign: 'center', flexGrow: 1 }}>
+          <img
+            src="/logo-typsa.png"
+            alt="Logo TYPSA"
+            style={{ height: 70, marginBottom: 8 }}
+          />
+          <h1 style={{ color: '#1976d2', margin: 0 }}>⚙️ Control de Coolers TYPSA</h1>
+        </div>
 
-  {/* Derecha: usuario */}
-  {user && (
-    <div style={{ textAlign: 'right', width: 150 }}>
-      <p style={{ margin: 0 }}>👤 {user.name} ({user.role})</p>
-      <button onClick={logout} style={{ marginTop: 5 }}>Cerrar sesión</button>
-    </div>
-  )}
-</header>
+        {/* Derecha: usuario */}
+        {user && (
+          <div style={{ textAlign: 'right', width: 150 }}>
+            <p style={{ margin: 0 }}>👤 {user.name} ({user.role})</p>
+            <button onClick={logout} style={{ marginTop: 5 }}>Cerrar sesión</button>
+          </div>
+        )}
+      </header>
 
       {/* Barra de navegación */}
-      <nav style={{ marginTop: 12, textAlign: 'center' }}>
+      <nav style={{ marginTop: 12, textAlign: 'center', width: '225px', float: 'left' }}>
         <MenuPrincipal onNavigate={setVista} />
       </nav>
 
@@ -114,7 +119,7 @@ export default function App() {
           <Route
             path="/dashboard"
             element={
-              <Private roles={['operador','admin']}>
+              <Private roles={['admin','operador_ingreso','operador_salida']}>
                 <Dashboard />
               </Private>
             }

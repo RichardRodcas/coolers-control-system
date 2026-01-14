@@ -71,10 +71,18 @@ export default function MantenimientoUsuario() {
       return;
     }
     try {
+      // 👇 Transformamos "nombre" a "name" para que coincida con el backend
+      const payload = {
+        id: usuarioActualizado.id,
+        name: usuarioActualizado.nombre,
+        email: usuarioActualizado.email,
+        role: usuarioActualizado.role
+      };
+
       const res = await fetch(`http://localhost:5000/auth/usuarios/${usuarioActualizado.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify(usuarioActualizado)
+        body: JSON.stringify(payload)
       });
       if (!res.headers.get('content-type')?.includes('application/json')) {
         throw new Error('El servidor no devolvió JSON');
@@ -110,22 +118,29 @@ export default function MantenimientoUsuario() {
         </thead>
         <tbody>
           {usuarios.map(u => (
-            <tr key={u.id} style={{ borderBottom: '1px solid #ccc' }}>
-              <td style={{ padding: 8 }}>{u.name}</td>
+            <tr key={u.email} style={{ borderBottom: '1px solid #ccc' }}>
+              <td style={{ padding: 8 }}>{u.nombre}</td>
               <td style={{ padding: 8 }}>{u.email}</td>
               <td style={{ padding: 8 }}>
                 <select
                   value={u.role}
-                  onChange={(e) => actualizarUsuario({ ...u, role: e.target.value })}
+                  onChange={(e) =>
+                    actualizarUsuario({
+                      email: u.email,
+                      nombre: u.nombre,   // 👈 se transforma a "name" dentro de actualizarUsuario
+                      role: e.target.value
+                    })
+                  }
                 >
-                  <option value="operador">Operador</option>
+                  <option value="operador_ingreso">Operador Ingreso</option>
+                  <option value="operador_salida">Operador Salida</option>
                   <option value="admin">Administrador</option>
                 </select>
               </td>
               <td style={{ padding: 8 }}>
                 <button
                   style={styles.secondaryBtn}
-                  onClick={() => eliminarUsuario(u.id)}
+                  onClick={() => eliminarUsuario(u.email)}
                 >
                   ❌ Eliminar
                 </button>
