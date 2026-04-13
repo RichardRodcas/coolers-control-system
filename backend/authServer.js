@@ -1,4 +1,3 @@
-// authServer.js
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -7,25 +6,39 @@ import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import Joi from 'joi';
-import pkg from 'pg';
 import dotenv from 'dotenv';
-dotenv.config();
-const { Pool } = pkg;
+import { requireAuth } from './middleware/auth.js';
+import { pool } from './db.js';   // 👈 Usamos el pool centralizado
 
-// ======================= Configuración de BD =======================
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'sistema_coolers_typsa',
-  password: process.env.DB_PASS || 'Password1$BD',
-  port: process.env.DB_PORT || 5432,
-});
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Definir __dirname en ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Certificados
+const options = {
+  key: fs.readFileSync(path.join(__dirname, '192.168.0.95-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, '192.168.0.95.pem'))
+};
+
+// .env
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+console.log("ACCESS_SECRET:", process.env.JWT_ACCESS_SECRET);
+console.log("REFRESH_SECRET:", process.env.JWT_REFRESH_SECRET);
 
 const app = express();
 app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({
+  origin: ['http://192.168.0.95:3000', 'https://192.168.0.95:3000'],
+  credentials: true
+}));
 
 // ======================= Rate limiting =======================
 const authLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 30 });
@@ -47,9 +60,12 @@ const issueTokens = (payload) => {
 };
 
 // ======================= Middleware exportable =======================
-export const requireAuth = (roles = []) => (req, res, next) => {
+/*export const requireAuth = (roles = []) => (req, res, next) => {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Sin token' });
+  if (!auth?.startsWith('Bearer ')) {
+    console.warn("[AUTH] No se recibió Authorization header");
+    return res.status(401).json({ error: 'Sin token' });
+  }
   const token = auth.slice(7);
   try {
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
@@ -58,10 +74,10 @@ export const requireAuth = (roles = []) => (req, res, next) => {
     }
     req.user = decoded;
     next();
-  } catch {
+  } catch (err){
     return res.status(401).json({ error: 'Token inválido/expirado' });
   }
-};
+};*/
 
 // ======================= Validación con Joi =======================
 const registerSchema = Joi.object({
@@ -93,10 +109,8 @@ app.post('/auth/register', async (req, res) => {
       [name, email, passwordHash, role]
     );
 
-    console.log(`[REGISTER] Usuario: ${email}, Nombre: ${name}, Rol: ${role}`);
     res.status(201).json({ message: 'Usuario creado' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Error en registro' });
   }
 });
@@ -116,7 +130,6 @@ app.post('/auth/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
 
-    // Payload con sub = email
     const payload = { sub: email, role: user.role, name: user.name };
     const { accessToken, refreshToken } = issueTokens(payload);
 
@@ -125,13 +138,12 @@ app.post('/auth/login', async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
-      path: '/'
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    console.log(`[LOGIN] Usuario: ${email}, Nombre: ${user.name}`);
     res.json({ accessToken, role: user.role, name: user.name });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Error en login' });
   }
 });
@@ -159,6 +171,31 @@ app.post('/auth/logout', (req, res) => {
   res.json({ message: 'Sesión cerrada' });
 });
 
+// ======================= Cambio de contraseña =======================
+app.put("/auth/update-password", requireAuth(), async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const email = req.user.sub; // 👈 sub es el email
+
+    const result = await pool.query("SELECT password FROM usuarios WHERE email = $1", [email]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const currentHash = result.rows[0].password;
+    const match = await bcrypt.compare(oldPassword, currentHash);
+    if (!match) return res.status(400).json({ error: "Contraseña actual incorrecta" });
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await pool.query("UPDATE usuarios SET password = $1, actualizado_en = NOW() WHERE email = $2", [newHash, email]);
+
+    res.json({ message: "Contraseña actualizada correctamente" });
+  } catch (err) {
+    res.status(500).json({ error: "Error interno" });
+  }
+});
+
 // ======================= Inicio del servidor =======================
 const PORT = process.env.AUTH_PORT || 4000;
-app.listen(PORT, () => console.log(`Auth server en puerto ${PORT}`));
+
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`Servidor en https://192.168.0.95:${PORT}`);
+});

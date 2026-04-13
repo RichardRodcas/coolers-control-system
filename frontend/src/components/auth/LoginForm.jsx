@@ -1,8 +1,11 @@
 // src/components/auth/LoginForm.jsx
 import React, { useState } from 'react';
-import { styles } from '../../styles/styles';
-import { useAuth } from '../../AuthContext'; // 👈 usamos el contexto
+import { styles } from '../../styles/styles.js';
+import { useAuth } from '../../AuthContext.jsx'; // 👈 usamos el contexto
 import { useNavigate } from 'react-router-dom';
+import "../../styles/App.css";
+import { CardContainer } from "../CardContainer.jsx";
+import { Card } from "../Card.jsx";
 
 export default function LoginForm() {
   const { login } = useAuth(); // 👈 obtenemos la función login del contexto
@@ -26,7 +29,8 @@ export default function LoginForm() {
   };
 
   return (
-    <div style={styles.card}>
+  <CardContainer>
+    <Card>
       <h2 style={styles.title}>🔐 Iniciar Sesión</h2>
       <form onSubmit={handleSubmit} style={styles.formColumn}>
         <div style={styles.formGroup}>
@@ -57,6 +61,8 @@ export default function LoginForm() {
       </form>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
-  );
+    </Card>
+  </CardContainer>
+);
+
 }

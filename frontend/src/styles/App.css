@@ -36,3 +36,190 @@
     transform: rotate(360deg);
   }
 }
+
+/* ===== Contenedor de tarjetas ===== */
+.cardContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ===== Tarjeta ===== */
+.card {
+  background: #f9f9f9;
+  border: 1px solid #2196F3;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== Encabezado ===== */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardTitle {
+  font-weight: bold;
+  color: #1976d2;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #eeeeee;
+}
+
+/* ===== Contenido ===== */
+.cardContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.fieldLabel { font-size: 0.75rem; color: #6b7280; }
+.fieldValue { font-size: 0.9rem; font-weight: 500; }
+
+/* ===== Footer / acciones ===== */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn {
+  border: 1px solid #cfd8dc;
+  background: #ffffff;
+  color: #1f2937;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.btnPrimary { border-color: #1976d2; color: #fff; background: #1976d2; }
+
+/* ===== Estados (color-coding) ===== */
+.status--operativo   { color: #16a34a; }
+.status--observado   { color: #f59e0b; }
+.status--inoperativo { color: #dc2626; }
+
+/* ===== Responsivo ===== */
+@media (max-width: 768px) {
+  .cardContainer { grid-template-columns: 1fr; padding: 12px; }
+  .card { padding: 12px; }
+  .cardContent { grid-template-columns: 1fr; }
+  .cardTitle { font-size: 1rem; }
+}
+
+.errorBox {
+  border: 1px solid #c62828;
+  background: #ffebee;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.okBox {
+  border: 1px solid #2e7d32;
+  background: #e8f5e9;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.estadoOk {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.estadoError {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.errorMsg {
+  color: #dc2626;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.successMsg {
+  color: #16a34a;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+/* ===== Tabla con scroll vertical ===== */
+.tableScroll {
+  max-height: 300px;   /* altura fija del contenedor */
+  overflow-y: auto;    /* activa scroll vertical */
+  overflow-x: hidden;  /* evita scroll horizontal innecesario */
+  display: block;      /* asegura que el div se comporte como bloque */
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+/* Opcional: encabezado fijo */
+.tableScroll thead {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+
+/* ===== Ajustes responsivos para móviles ===== */
+@media (max-width: 768px) {
+  /* Contadores en columna */
+  .counterRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .counterBox {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  /* Tabla con scroll horizontal */
+  .tableScroll {
+    width: 100%;
+    overflow-x: auto;   /* 👈 permite scroll horizontal */
+    -webkit-overflow-scrolling: touch; /* suaviza en iOS */
+  }
+
+  table {
+    min-width: 600px;   /* 👈 asegura que la tabla no se comprima demasiado */
+  }
+
+  th, td {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  /* Cards más compactas */
+  .card {
+    padding: 12px;
+  }
+
+  .formRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .primaryBtn, .secondaryBtn {
+    width: 100%;   /* 👈 botones ocupan todo el ancho */
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import QrScanner from 'react-qr-barcode-scanner';
-import { validateCode } from '../api'; // 👈 usamos la función del api.js
-import { styles } from '../styles/styles';
+import { validateCode } from '../api.js'; // 👈 usamos la función del api.js
+import { styles } from '../styles/styles.js';
 
 function BarcodeScanner({ onDetected }) {
   const [scanning, setScanning] = useState(false);

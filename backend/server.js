@@ -1,24 +1,36 @@
 import express from 'express';
 import cors from 'cors';
-import pkg from 'pg';
-import { requireAuth } from './middleware/auth.js';
 import dotenv from 'dotenv';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+import { pool } from './db.js';        // 👈 Usamos el pool centralizado
+import { requireAuth } from './middleware/auth.js';
 
-const { Pool } = pkg;
+// Definir __dirname en ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'sistema_coolers_typsa',
-  password: process.env.DB_PASS || 'Password1$BD',
-  port: process.env.DB_PORT || 5432,
-});
+// Certificados
+const options = {
+  key: fs.readFileSync(path.join(__dirname, '192.168.0.95-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, '192.168.0.95.pem'))
+};
+
+// .env
+dotenv.config({ path: new URL('./.env', import.meta.url) });
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({
+  origin: ['http://192.168.0.95:3000', 'https://192.168.0.95:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Authorization']
+}));
 
 // Logger simple
 app.use((req, res, next) => {
@@ -26,11 +38,41 @@ app.use((req, res, next) => {
   next();
 });
 
+// ======================= Endpoints =======================
+
+// Ejemplo: obtener todos los coolers
+/*app.get('/coolers', requireAuth(), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM coolers ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error("[ERROR] /coolers:", err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});*/
+
+// Ejemplo: ingreso de cooler
+app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (req, res) => {
+  try {
+    const { codigo, descripcion } = req.body;
+    await pool.query(
+      'INSERT INTO coolers (codigo, descripcion, estado, creado_en) VALUES ($1,$2,$3,NOW())',
+      [codigo, descripcion, 'ingresado']
+    );
+    res.json({ message: 'Cooler ingresado correctamente' });
+  } catch (err) {
+    console.error("[ERROR] /coolers/ingreso:", err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // Utilidad de normalización
 const norm = s => String(s ?? '').trim().toLowerCase();
 
+
 // ======================= Funciones auxiliares con BD =======================
-// ======================= Funciones auxiliares con BD =======================
+
+
 const estadosValidos = ['operativo', 'observado', 'inoperativo'];
 
 function validarEstado(estado) {
@@ -95,12 +137,14 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
 
   const client = await pool.connect();
   const errores = [];
+
   try {
     await client.query('BEGIN');
 
     for (const rawCodigo of codigos) {
       const codigo = String(rawCodigo || '').trim();
 
+      // Actualizar estado actual del cooler
       const updateResult = await client.query(
         `UPDATE coolers
            SET disponibilidad='Laboratorio',
@@ -130,12 +174,28 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
         continue;
       }
 
+      // Buscar la última OT de salida para este cooler
+      const prevSalida = await client.query(
+        `SELECT orden_trabajo
+         FROM movimientos_cooler
+         WHERE cooler_codigo=$1 AND tipo='Salida'
+         ORDER BY fecha DESC
+         LIMIT 1`,
+        [codigo]
+      );
+
+      const ot = prevSalida.rowCount ? prevSalida.rows[0].orden_trabajo : null;
+
+      // Insertar movimiento de ingreso vinculado a la OT encontrada
       await client.query(
         `INSERT INTO movimientos_cooler (
            cooler_codigo, tipo, realizado_por,
-           estado_resultante, disponibilidad_resultante, observacion
-         ) VALUES ($1,'Ingreso',$2,'Operativo','Laboratorio','Ingreso registrado')`,
-        [codigo, req.user.sub]
+           estado_resultante, disponibilidad_resultante,
+           estado_evento, disponibilidad_evento,
+           observacion, orden_trabajo
+         ) VALUES ($1,'Ingreso',$2,'Operativo','Laboratorio',
+                   'Operativo','Laboratorio','Ingreso registrado',$3)`,
+        [codigo, req.user.sub, ot]
       );
     }
 
@@ -145,14 +205,16 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
       ? `Ingreso registrado para ${codigos.length} cooler(s)`
       : `Ingreso parcial: ${codigos.length - errores.length} ok, ${errores.length} con observaciones`;
     res.json({ ok, mensaje, errores });
+
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ ok: false, mensaje: 'Error registrando ingreso' });
+
   } finally {
     client.release();
   }
-});
+}); 
 
 // Salida de coolers
 app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req, res) => {
@@ -166,6 +228,7 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
 
   const client = await pool.connect();
   const errores = [];
+
   try {
     await client.query('BEGIN');
 
@@ -204,9 +267,12 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
       await client.query(
         `INSERT INTO movimientos_cooler (
            cooler_codigo, tipo, hacia_cliente_ruc, realizado_por,
-           estado_resultante, disponibilidad_resultante, observacion
-         ) VALUES ($1,'Salida',$2,$3,'Operativo','Campo',$4)`,
-        [codigo, clienteRuc, req.user.sub, `Salida OT ${ordenTrabajo}`]
+           estado_resultante, disponibilidad_resultante,
+           estado_evento, disponibilidad_evento,
+           observacion, orden_trabajo
+         ) VALUES ($1,'Salida',$2,$3,'Operativo','Campo',
+                   'Operativo','Campo','Salida registrada',$4)`,
+        [codigo, clienteRuc, req.user.sub, ordenTrabajo]
       );
     }
 
@@ -216,17 +282,19 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
       ? `Salida registrada para ${codigos.length} cooler(s)`
       : `Salida parcial: ${codigos.length - errores.length} ok, ${errores.length} con observaciones`;
     res.json({ ok, mensaje, errores });
+
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ ok: false, mensaje: 'Error registrando salida' });
+
   } finally {
     client.release();
   }
-});
+}); // 👈 cierre correcto del app.post
 
 //actualizar mantenimiento de cooler
-app.put('/coolers/:codigo/mantenimiento', requireAuth(['admin']), async (req, res) => {
+app.put('/coolers/:codigo/mantenimiento', requireAuth(['admin', 'operador_salida']), async (req, res) => {
   const codigo = String(req.params.codigo || '').trim().toUpperCase(); // 👈 normaliza
   const { estado, observacion = '', tipo = 'Correctivo', descripcion = 'Actualización de estado' } = req.body;
 
@@ -297,6 +365,7 @@ app.get('/coolers', requireAuth(['admin','operador_ingreso','operador_salida']),
   }
 });
 
+
 // Coolers en campo
 app.get('/coolers/fuera', requireAuth(['admin','operador_ingreso','operador_salida']), async (req, res) => {
   try {
@@ -321,33 +390,34 @@ app.get(
       // Historial: movimientos + mantenimientos
       const result = await pool.query(
         `SELECT * FROM (
-           -- Movimientos (incluye cliente y disponibilidad)
-           SELECT fecha,
+           -- Movimientos (incluye cliente, disponibilidad y OT)
+           SELECT m.fecha,
                   'Movimiento' AS tipo,
-                  hacia_cliente_ruc AS cliente,
-                  realizado_por,
-                  estado_resultante AS estado,
-                  disponibilidad_resultante AS disponibilidad,
-                  observacion,
-                  NULL::varchar AS "ordenTrabajo"
-           FROM movimientos_cooler
-           WHERE cooler_codigo=$1
+                  cl.razon_social AS cliente,
+                  m.realizado_por,
+                  m.estado_resultante AS estado,
+                  m.disponibilidad_resultante AS disponibilidad,
+                  m.observacion,
+                  m.orden_trabajo AS "ordenTrabajo"
+           FROM movimientos_cooler m
+           LEFT JOIN clientes cl ON m.hacia_cliente_ruc = cl.ruc
+           WHERE m.cooler_codigo=$1
 
            UNION ALL
 
            -- Mantenimientos (incluye OT si existe)
-           SELECT fecha,
+           SELECT mt.fecha,
                   'Mantenimiento' AS tipo,
                   NULL AS cliente,
-                  realizado_por,
-                  estado_resultante AS estado,
+                  mt.realizado_por,
+                  mt.estado_resultante AS estado,
                   NULL AS disponibilidad,
-                  observacion,
-                  orden_trabajo AS "ordenTrabajo"
-           FROM mantenimiento_cooler
-           WHERE cooler_codigo=$1
-         ) AS historial
-         ORDER BY fecha DESC`,
+                  mt.observacion,
+                  mt.orden_trabajo AS "ordenTrabajo"
+           FROM mantenimiento_cooler mt
+           WHERE mt.cooler_codigo=$1
+        ) AS historial
+        ORDER BY fecha DESC`,
         [codigoNorm]
       );
 
@@ -400,13 +470,51 @@ app.get('/coolers/:codigo/detalle', requireAuth(['admin','operador_ingreso','ope
     const { codigo } = req.params;
     const result = await pool.query(
       `SELECT c.*,
-              (SELECT fecha FROM movimientos_cooler m WHERE m.cooler_codigo=c.codigo ORDER BY fecha DESC LIMIT 1) AS ultimo_movimiento,
-              (SELECT fecha FROM mantenimiento_cooler mt WHERE mt.cooler_codigo=c.codigo ORDER BY fecha DESC LIMIT 1) AS ultimo_mantenimiento
+         -- Último movimiento
+         (SELECT m.fecha
+          FROM movimientos_cooler m
+          WHERE m.cooler_codigo = c.codigo
+          ORDER BY m.fecha DESC
+          LIMIT 1) AS ultimo_movimiento,
+
+         -- Cliente del último movimiento
+         (SELECT cl.razon_social
+          FROM movimientos_cooler m
+          LEFT JOIN clientes cl ON m.hacia_cliente_ruc = cl.ruc
+          WHERE m.cooler_codigo = c.codigo
+          ORDER BY m.fecha DESC
+          LIMIT 1) AS cliente,
+
+         -- Última OT registrada (movimiento o mantenimiento)
+         COALESCE(
+           (SELECT m.orden_trabajo
+            FROM movimientos_cooler m
+            WHERE m.cooler_codigo = c.codigo
+            ORDER BY m.fecha DESC
+            LIMIT 1),
+           (SELECT mt.orden_trabajo
+            FROM mantenimiento_cooler mt
+            WHERE mt.cooler_codigo = c.codigo
+            ORDER BY mt.fecha DESC
+            LIMIT 1)
+         ) AS ultima_ot,
+
+         -- Último mantenimiento
+         (SELECT mt.fecha
+          FROM mantenimiento_cooler mt
+          WHERE mt.cooler_codigo = c.codigo
+          ORDER BY mt.fecha DESC
+          LIMIT 1) AS ultimo_mantenimiento
+
        FROM coolers c
-       WHERE c.codigo=$1`,
+       WHERE c.codigo = $1`,
       [String(codigo || '').trim()]
     );
-    if (result.rowCount === 0) return res.status(404).json({ ok: false, mensaje: 'No encontrado' });
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'No encontrado' });
+    }
+
     res.json({ ok: true, data: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -421,7 +529,7 @@ app.get('/coolers/:codigo/detalle', requireAuth(['admin','operador_ingreso','ope
 app.get('/auth/usuarios', requireAuth(['admin']), async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT email, name, role, creado_en, actualizado_en FROM usuarios'
+      'SELECT email, name, role, creado_en, actualizado_en FROM usuarios ORDER BY creado_en DESC'
     );
     res.json({ ok: true, data: result.rows });
   } catch (err) {
@@ -444,6 +552,7 @@ app.put('/auth/usuarios/:email', requireAuth(['admin']), async (req, res) => {
   }
 
   try {
+    // Validar que el nuevo email no esté ocupado por otro usuario
     const exists = await pool.query(
       'SELECT 1 FROM usuarios WHERE email=$1 AND email<>$2',
       [newEmail, email]
@@ -492,7 +601,7 @@ app.delete('/auth/usuarios/:email', requireAuth(['admin']), async (req, res) => 
 // ======================= ENDPOINTS CLIENTES =======================
 
 // Listar clientes
-app.get('/clientes', requireAuth(['admin']), async (req, res) => {
+app.get('/clientes', requireAuth(['admin','operador_salida']), async (req, res) => {
   try {
     const result = await pool.query('SELECT ruc, razon_social, email, telefono, direccion, creado_en, actualizado_en FROM clientes');
     res.json({ ok: true, data: result.rows });
@@ -503,7 +612,7 @@ app.get('/clientes', requireAuth(['admin']), async (req, res) => {
 });
 
 // Crear cliente
-app.post('/clientes', requireAuth(['admin']), async (req, res) => {
+app.post('/clientes', requireAuth(['admin', 'operador_salida']), async (req, res) => {
   console.log("Body recibido en POST /clientes:", req.body);
 
   // ✅ Primero desestructuramos el body
@@ -539,7 +648,7 @@ app.post('/clientes', requireAuth(['admin']), async (req, res) => {
 });
 
 // Actualizar cliente
-app.put('/clientes/:ruc', requireAuth(['admin']), async (req, res) => {
+app.put('/clientes/:ruc', requireAuth(['admin', 'operador_salida']), async (req, res) => {
   const { ruc } = req.params;
   const { razon_social, email, telefono, direccion } = req.body;
 
@@ -565,7 +674,7 @@ app.put('/clientes/:ruc', requireAuth(['admin']), async (req, res) => {
 });
 
 // Eliminar cliente
-app.delete('/clientes/:ruc', requireAuth(['admin']), async (req, res) => {
+app.delete('/clientes/:ruc', requireAuth(['admin', 'operador_salida']), async (req, res) => {
   const { ruc } = req.params;
 
   try {
@@ -579,6 +688,73 @@ app.delete('/clientes/:ruc', requireAuth(['admin']), async (req, res) => {
   }
 });
 
+
+// Buscar coolers en campo por Orden de Trabajo (solo admin)
+app.get('/coolers/por-ot/:ordenTrabajo', requireAuth(['admin', 'operador_salida']), async (req, res) => {
+  try {
+    const { ordenTrabajo } = req.params;
+
+    const result = await pool.query(
+      `SELECT DISTINCT ON (codigo)
+              codigo,
+              color,
+              estado_resultante AS estado,
+              disponibilidad_resultante AS disponibilidad,
+              cliente,
+              orden_trabajo,
+              tipo_evento,
+              fecha
+       FROM (
+         -- Movimientos asociados a la OT
+         SELECT mc.cooler_codigo AS codigo,
+                c.color,
+                mc.estado_resultante,
+                mc.disponibilidad_resultante,
+                cl.razon_social AS cliente,
+                mc.orden_trabajo,
+                mc.tipo AS tipo_evento,
+                mc.fecha
+         FROM movimientos_cooler mc
+         INNER JOIN coolers c ON mc.cooler_codigo = c.codigo
+         LEFT JOIN clientes cl ON mc.hacia_cliente_ruc = cl.ruc
+         WHERE mc.orden_trabajo = $1
+
+         UNION ALL
+
+         -- Mantenimientos asociados a la OT
+         SELECT mt.cooler_codigo AS codigo,
+                c.color,
+                'Operativo' AS estado_resultante,   -- ajusta según tu lógica de mantenimiento
+                'Laboratorio' AS disponibilidad_resultante,
+                NULL AS cliente,
+                mt.orden_trabajo,
+                'Mantenimiento' AS tipo_evento,
+                mt.fecha
+         FROM mantenimiento_cooler mt
+         INNER JOIN coolers c ON mt.cooler_codigo = c.codigo
+         WHERE mt.orden_trabajo = $1
+       ) sub
+       ORDER BY codigo, fecha DESC`,
+      [String(ordenTrabajo || '').trim()]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'No se encontraron coolers para esa OT' });
+    }
+
+    res.json({ ok: true, data: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, mensaje: 'Error buscando coolers por OT' });
+  }
+});
+
 // ======================= SERVIDOR =======================
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Servidor de negocio en http://localhost:${PORT}`));
+const PORT = process.env.SERVER_PORT || 5000;
+
+https.createServer({
+  key: fs.readFileSync(new URL('./192.168.0.95-key.pem', import.meta.url)),
+  cert: fs.readFileSync(new URL('./192.168.0.95.pem', import.meta.url))
+}, app).listen(PORT, () => {
+  console.log(`Servidor en https://192.168.0.95:${PORT}`);
+});

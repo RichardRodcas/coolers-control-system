@@ -1,7 +1,9 @@
 // src/App.jsx
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext.jsx';
+import "./styles/App.css";
+import { AppProvider } from './context/AppContext.js';   // ✅ Importamos el contexto global
 
 // Formularios de autenticación
 import LoginForm from './components/auth/LoginForm';
@@ -16,7 +18,8 @@ import MantenimientoCooler from './components/MantenimientoCooler';
 import Trazabilidad from './components/Trazabilidad';
 import MantenimientoUsuario from './components/MantenimientoUsuario';
 import RegistroClientes from './components/RegistroClientes';
-
+import BuscarPorOT  from './components/BuscarPorOT';
+import CambiarPassword from './components/CambiarPassword';
 // Wrapper para proteger vistas según login y rol
 function Private({ roles = [], children }) {
   const { isAuthed, user } = useAuth();
@@ -52,6 +55,10 @@ function Dashboard() {
         return user?.role === 'admin' ? <RegistroClientes /> : <div>Acceso denegado</div>;
       case 'mantenimientoUsuario':
         return user?.role === 'admin' ? <MantenimientoUsuario /> : <div>Acceso denegado</div>;
+      case 'buscarPorOT':
+        return user?.role === 'admin' ? <BuscarPorOT userRole={user?.role} /> : <div>Acceso denegado</div>;
+      case 'cambiarPassword':
+        return <CambiarPassword />;
       default:
         return <Inventario />;
     }
@@ -109,26 +116,28 @@ function Dashboard() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Rutas públicas */}
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/register" element={<RegisterForm />} />
+      <AppProvider>   {/* ✅ Envolvemos todo con AppProvider */}
+        <Router>
+          <Routes>
+            {/* Rutas públicas */}
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterForm />} />
 
-          {/* Ruta protegida del dashboard */}
-          <Route
-            path="/dashboard"
-            element={
-              <Private roles={['admin','operador_ingreso','operador_salida']}>
-                <Dashboard />
-              </Private>
-            }
-          />
+            {/* Ruta protegida del dashboard */}
+            <Route
+              path="/dashboard"
+              element={
+                <Private roles={['admin','operador_ingreso','operador_salida']}>
+                  <Dashboard />
+                </Private>
+              }
+            />
 
-          {/* Redirección por defecto */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+            {/* Redirección por defecto */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </AppProvider>
     </AuthProvider>
   );
 }

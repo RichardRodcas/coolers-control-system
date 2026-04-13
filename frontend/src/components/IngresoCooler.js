@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
-import { ingresoCoolers } from '../api';
+// src/components/IngresoCooler.jsx
+import React, { useState, useContext } from 'react';
+import { ingresoCoolers } from '../api.js';
 import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
-import { styles } from '../styles/styles';
-import BarcodeScanner from './BarcodeScanner';
+import { styles } from '../styles/styles.js';
+//import BarcodeScanner from './BarcodeScanner.js';
+import "../styles/App.css";
+import { CardContainer } from "./CardContainer.jsx";
+import { Card } from "./Card.jsx";
+import { AppContext } from '../context/AppContext.js';   // ✅ Importamos el contexto
 
 function IngresoCooler() {
-  const [codigos, setCodigos] = useState([]);
+  const { ingreso, setIngreso } = useContext(AppContext); // ✅ Estado global
   const [codigoInput, setCodigoInput] = useState('');
-  const [feedback, setFeedback] = useState(null);
 
   const agregarCodigo = (codigo) => {
     const limpio = (codigo || '').trim();
-    if (limpio && !codigos.includes(limpio)) {
-      setCodigos(prev => [...prev, limpio]);
+    if (limpio && !ingreso.codigos.includes(limpio)) {
+      setIngreso(prev => ({ ...prev, codigos: [...prev.codigos, limpio] }));
     }
   };
 
@@ -25,133 +29,129 @@ function IngresoCooler() {
   };
 
   const quitarCodigo = (codigo) => {
-    setCodigos(prev => prev.filter(c => c !== codigo));
+    setIngreso(prev => ({ ...prev, codigos: prev.codigos.filter(c => c !== codigo) }));
   };
 
   const limpiarLista = () => {
-    if (codigos.length === 0) return;
-    if (window.confirm(`¿Seguro que quieres borrar los ${codigos.length} códigos?`)) {
-      setCodigos([]);
+    if (ingreso.codigos.length === 0) return;
+    if (window.confirm(`¿Seguro que quieres borrar los ${ingreso.codigos.length} códigos?`)) {
+      setIngreso({ codigos: [], feedback: null });
       setCodigoInput('');
     }
   };
 
-  const puedeRegistrar = codigos.length > 0;
+  const puedeRegistrar = ingreso.codigos.length > 0;
 
   const registrarIngreso = async () => {
-    setFeedback(null);
+    setIngreso(prev => ({ ...prev, feedback: null }));
 
-    if (codigos.length === 0) {
-      setFeedback({ tipo: 'error', mensaje: 'Debes ingresar al menos un código', errores: [] });
+    if (ingreso.codigos.length === 0) {
+      setIngreso(prev => ({ ...prev, feedback: { tipo: 'error', mensaje: 'Debes ingresar al menos un código', errores: [] } }));
       return;
     }
 
     try {
-      const data = await ingresoCoolers(codigos); // ✅ sin token
+      const data = await ingresoCoolers(ingreso.codigos); // ✅ sin token
 
       if (data.errores && data.errores.length > 0) {
-        setFeedback({ tipo: 'error', mensaje: data.mensaje, errores: data.errores });
+        setIngreso(prev => ({ ...prev, feedback: { tipo: 'error', mensaje: data.mensaje, errores: data.errores } }));
       } else {
-        setFeedback({ tipo: 'ok', mensaje: data.mensaje, errores: [] });
-        setCodigos([]);
+        setIngreso({ codigos: [], feedback: { tipo: 'ok', mensaje: data.mensaje, errores: [] } });
       }
     } catch (err) {
       const msg = err.response?.data?.mensaje || 'Error al registrar ingreso';
       const errores = err.response?.data?.errores || [];
-      setFeedback({ tipo: 'error', mensaje: msg, errores });
+      setIngreso(prev => ({ ...prev, feedback: { tipo: 'error', mensaje: msg, errores } }));
     }
   };
 
   return (
-  <>
-    <h2 style={styles.title}>🏢 Ingreso de Coolers</h2>
+    <>
+      <h2 style={styles.title}>🏢 Ingreso de Coolers</h2>
 
-    {/* Bloques en paralelo */}
-    <div style={styles.cardContainer}>
-      {/* Bloque 1: Scanner + input manual */}
-      <div style={styles.card}>
-        {/* Scanner integrado */}
-        <BarcodeScanner onDetected={agregarCodigo} />
+      {/* Bloques en paralelo */}
+      <CardContainer>
+        {/* Bloque 1: Scanner + input manual */}
+        <Card>
+  <div style={styles.formGroup}>
+    <label style={styles.label}>Escriba código manualmente</label>
+    <input
+      style={styles.input}
+      value={codigoInput}
+      onChange={(e) => setCodigoInput(e.target.value)}
+      onKeyDown={handleKeyDown}
+      placeholder="Ingrese código y presione Enter"
+    />
+  </div>
+</Card>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Escriba código manualmente</label>
-          <input
-            style={styles.input}
-            value={codigoInput}
-            onChange={(e) => setCodigoInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ingrese código y presione Enter"
-          />
+        {/* Bloque 2: Lista de códigos */}
+        <Card>
+          <h3 style={styles.subtitle}>
+            Coolers en este ingreso ({ingreso.codigos.length}):
+          </h3>
+          <ul style={styles.list}>
+            {ingreso.codigos.map((c) => (
+              <li key={c} style={styles.listItem}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FaCheckCircle color="#2e7d32" /> {c}
+                </span>
+                <button
+                  style={styles.deleteBtn}
+                  onClick={() => quitarCodigo(c)}
+                >
+                  <FaTrash /> Quitar
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </CardContainer>
+
+      {/* Acciones */}
+      <Card>
+        <div style={styles.actions}>
+          <button
+            style={puedeRegistrar ? styles.primaryBtn : styles.disabledBtn}
+            onClick={registrarIngreso}
+            disabled={!puedeRegistrar}
+          >
+            <FaCheckCircle /> Registrar ingreso
+          </button>
+          <button style={styles.dangerBtn} onClick={limpiarLista}>
+            <FaTrash /> Limpiar lista
+          </button>
         </div>
-      </div>
 
-      {/* Bloque 2: Lista de códigos */}
-      <div style={styles.card}>
-        <h3 style={styles.subtitle}>
-          Coolers en este ingreso ({codigos.length}):
-        </h3>
-        <ul style={styles.list}>
-          {codigos.map((c) => (
-            <li key={c} style={styles.listItem}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FaCheckCircle color="#2e7d32" /> {c}
-              </span>
-              <button
-                style={styles.deleteBtn}
-                onClick={() => quitarCodigo(c)}
-              >
-                <FaTrash /> Quitar
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-
-    {/* Acciones */}
-    <div style={styles.card}>
-      <div style={styles.actions}>
-        <button
-          style={puedeRegistrar ? styles.primaryBtn : styles.disabledBtn}
-          onClick={registrarIngreso}
-          disabled={!puedeRegistrar}
-        >
-          <FaCheckCircle /> Registrar ingreso
-        </button>
-        <button style={styles.dangerBtn} onClick={limpiarLista}>
-          <FaTrash /> Limpiar lista
-        </button>
-      </div>
-
-      {/* Feedback */}
-      {feedback && (
-        <div style={feedback.tipo === 'ok' ? styles.okBox : styles.errorBox}>
-          <div style={styles.feedbackHeader}>
-            {feedback.tipo === 'ok' && <FaCheckCircle color="#2e7d32" />}
-            {feedback.tipo === 'error' && (
-              <FaExclamationTriangle color="#c62828" />
+        {/* Feedback */}
+        {ingreso.feedback && (
+          <div className={ingreso.feedback.tipo === 'ok' ? "okBox" : "errorBox"}>
+            <div className="feedbackHeader">
+              {ingreso.feedback.tipo === 'ok' && <FaCheckCircle color="#2e7d32" />}
+              {ingreso.feedback.tipo === 'error' && (
+                <FaExclamationTriangle color="#c62828" />
+              )}
+              <strong style={{ marginLeft: 8 }}>{ingreso.feedback.mensaje}</strong>
+            </div>
+            {ingreso.feedback.errores.length > 0 && (
+              <ul className="feedbackList">
+                {ingreso.feedback.errores.map((d, idx) => (
+                  <li key={idx} className="feedbackItemErr">
+                    <span>
+                      <strong>Código:</strong> {d.codigo}
+                    </span>
+                    <span>
+                      <strong>Mensaje:</strong> {d.mensaje}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
-            <strong style={{ marginLeft: 8 }}>{feedback.mensaje}</strong>
           </div>
-          {feedback.errores.length > 0 && (
-            <ul style={styles.feedbackList}>
-              {feedback.errores.map((d, idx) => (
-                <li key={idx} style={styles.feedbackItemErr}>
-                  <span>
-                    <strong>Código:</strong> {d.codigo}
-                  </span>
-                  <span>
-                    <strong>Mensaje:</strong> {d.mensaje}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  </>
-);
+        )}
+      </Card>
+    </>
+  );
 }
 
 export default IngresoCooler;

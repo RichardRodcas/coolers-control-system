@@ -7,9 +7,12 @@
   "scripts": {
     "auth": "node authServer.js",
     "dev": "nodemon server.js",
+    "dev:auth": "nodemon authServer.js",
+    "dev:all": "concurrently \"nodemon authServer.js\" \"nodemon server.js\"",
     "start:auth": "node authServer.js",
     "start:api": "node server.js",
     "start": "concurrently \"npm run start:auth\" \"npm run start:api\""
+
   },
   "keywords": [],
   "author": "Richard",

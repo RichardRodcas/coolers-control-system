@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { getTrazabilidad } from '../api';
-import { styles } from '../styles/styles';
-import BarcodeScanner from './BarcodeScanner';
+import React, { useState, useContext } from 'react';
+import { getTrazabilidad } from '../api.js';
+import { styles } from '../styles/styles.js';
+import BarcodeScanner from './BarcodeScanner.js';
+import "../styles/App.css";
+import { CardContainer } from "./CardContainer.jsx";
+import { Card } from "./Card.jsx";
+import { AppContext } from '../context/AppContext.js';
 
 // Función para dar color al estado
 const estadoStyle = (estado) => {
@@ -26,17 +30,16 @@ const formatFecha = (fecha) => {
 
 function Trazabilidad() {
   const [codigo, setCodigo] = useState('');
-  const [detalle, setDetalle] = useState(null);
-  const [historial, setHistorial] = useState([]);
-  const [error, setError] = useState('');
+
+  // ✅ Usamos el contexto global en vez de useState local
+  const { trazabilidad, setTrazabilidad } = useContext(AppContext);
 
   const buscarCooler = async () => {
-    setError('');
-    setDetalle(null);
-    setHistorial([]);
+    // Reiniciamos estado global
+    setTrazabilidad({ detalle: null, historial: [], error: '' });
 
     if (!codigo.trim()) {
-      setError('❌ Debe ingresar un código');
+      setTrazabilidad({ detalle: null, historial: [], error: '❌ Debe ingresar un código' });
       return;
     }
 
@@ -45,108 +48,114 @@ function Trazabilidad() {
       const data = await getTrazabilidad(codigoNorm);
 
       if (!data.detalle) {
-        setError(`No se encontró el cooler ${codigoNorm}`);
+        setTrazabilidad({ detalle: null, historial: [], error: `No se encontró el cooler ${codigoNorm}` });
       } else {
-        setDetalle(data.detalle);
-        setHistorial(data.historial || []);
+        // Tomar el último evento del historial para completar detalle
+        const ultimoEvento = data.historial?.[0] || {};
+        const detalle = {
+          ...data.detalle,
+          cliente: ultimoEvento.cliente || data.detalle.cliente,
+          ordenTrabajo: ultimoEvento.ordenTrabajo || data.detalle.ordenTrabajo,
+          ultimo_movimiento: ultimoEvento.fecha || data.detalle.ultimo_movimiento,
+          ultimo_mantenimiento: data.detalle.ultimo_mantenimiento
+        };
+        setTrazabilidad({ detalle, historial: data.historial || [], error: '' });
       }
     } catch (err) {
       console.error('Error al buscar trazabilidad', err);
-      setError('❌ Error al consultar trazabilidad');
+      setTrazabilidad({ detalle: null, historial: [], error: '❌ Error al consultar trazabilidad' });
     }
   };
 
   return (
-  <>
-    <h2 style={styles.title}>🔎 Trazabilidad de Coolers</h2>
+    <>
+      <h2 style={styles.title}>🔎 Trazabilidad de Coolers</h2>
 
-    {/* Bloques en paralelo */}
-    <div style={styles.cardContainer}>
-      {/* Bloque 1: Buscador por código */}
-      <div style={styles.card}>
-        <div style={styles.formRow}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Código del cooler</label>
-            <input
-              style={styles.trazaInput}
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-              placeholder="Ej: MO-0003-TYP"
-            />
+      <CardContainer>
+        {/* Bloque 1: Buscador por código */}
+        <Card>
+          <div style={styles.formRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Código del cooler</label>
+              <input
+                style={styles.trazaInput}
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+                placeholder="Ej: MO-0003-TYP"
+              />
+            </div>
+            <button style={styles.primaryBtn} onClick={buscarCooler}>
+              Buscar
+            </button>
           </div>
-          <button style={styles.primaryBtn} onClick={buscarCooler}>
-            Buscar
-          </button>
-        </div>
 
-        {/* Scanner integrado */}
-        <BarcodeScanner onDetected={setCodigo} />
-      </div>
+          <BarcodeScanner onDetected={setCodigo} />
+        </Card>
 
-      {/* Bloque 2: Detalle actual */}
-      <div style={styles.card}>
-        {error && <div style={styles.errorBox}>{error}</div>}
+        {/* Bloque 2: Detalle actual */}
+        <Card>
+          {trazabilidad.error && <div className="errorBox">{trazabilidad.error}</div>}
 
-        {detalle && (
-          <div style={styles.okBox}>
-            <strong>Código:</strong> {detalle.codigo} <br />
-            <strong>Color:</strong> {detalle.color || '-'} <br />
-            <strong>Ubicación actual:</strong> {detalle.disponibilidad || '-'} <br />
-            <strong>Estado:</strong>{' '}
-            <span style={estadoStyle(detalle.estado)}>
-              {detalle.estado || '-'}
-            </span>{' '}
-            <br />
-            <strong>Cliente:</strong> {detalle.cliente || '-'} <br />
-            <strong>Orden de Trabajo:</strong> {detalle.ordenTrabajo || '-'} <br />
-            <strong>Último movimiento:</strong>{' '}
-            {detalle.ultimo_movimiento ? formatFecha(detalle.ultimo_movimiento) : '-'}{' '}
-            <br />
-            <strong>Último mantenimiento:</strong>{' '}
-            {detalle.ultimo_mantenimiento ? formatFecha(detalle.ultimo_mantenimiento) : '-'}
+          {trazabilidad.detalle && (
+            <div className="okBox">
+              <dl>
+                <dt>Código:</dt><dd>{trazabilidad.detalle.codigo}</dd>
+                <dt>Color:</dt><dd>{trazabilidad.detalle.color || '-'}</dd>
+                <dt>Ubicación actual:</dt><dd>{trazabilidad.detalle.disponibilidad || '-'}</dd>
+                <dt>Estado:</dt>
+                <dd><span style={estadoStyle(trazabilidad.detalle.estado)}>{trazabilidad.detalle.estado || '-'}</span></dd>
+                <dt>Cliente:</dt><dd>{trazabilidad.detalle.cliente || '-'}</dd>
+                <dt>Orden de Trabajo:</dt><dd>{trazabilidad.detalle.ordenTrabajo || '-'}</dd>
+                <dt>Último movimiento:</dt>
+                <dd>{trazabilidad.detalle.ultimo_movimiento ? formatFecha(trazabilidad.detalle.ultimo_movimiento) : '-'}</dd>
+                <dt>Último mantenimiento:</dt>
+                <dd>{trazabilidad.detalle.ultimo_mantenimiento ? formatFecha(trazabilidad.detalle.ultimo_mantenimiento) : '-'}</dd>
+              </dl>
+            </div>
+          )}
+        </Card>
+      </CardContainer>
+
+      {/* Historial */}
+      {trazabilidad.historial?.length > 0 && (
+        <Card>
+          <h3 style={styles.subtitle}>Historial ({trazabilidad.historial.length} eventos)</h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Fecha</th>
+                  <th style={styles.th}>Acción</th>
+                  <th style={styles.th}>Estado</th>
+                  <th style={styles.th}>Disponibilidad</th>
+                  <th style={styles.th}>Cliente</th>
+                  <th style={styles.th}>OT</th>
+                  <th style={styles.th}>Observación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trazabilidad.historial.map((h, i) => (
+                  <tr key={i} style={i === 0 ? { backgroundColor: "#e3f2fd" } : {}}>
+                    <td style={styles.td}>{formatFecha(h.fecha)}</td>
+                    <td style={styles.td}>
+                      {h.tipo === "Movimiento" ? "🚚 Movimiento" : "🛠️ Mantenimiento"}
+                    </td>
+                    <td style={{ ...styles.td, ...estadoStyle(h.estado) }}>
+                      {h.estado || "-"}
+                    </td>
+                    <td style={styles.td}>{h.disponibilidad || "-"}</td>
+                    <td style={styles.td}>{h.cliente || "-"}</td>
+                    <td style={styles.td}>{h.ordenTrabajo || "-"}</td>
+                    <td style={styles.td}>{h.observacion || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
-    </div>
-
-    {/* Historial */}
-    {historial.length > 0 && (
-      <div style={styles.card}>
-        <h3 style={styles.subtitle}>Historial ({historial.length} eventos)</h3>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Fecha</th>
-              <th style={styles.th}>Acción</th>
-              <th style={styles.th}>Estado</th>
-              <th style={styles.th}>Disponibilidad</th>
-              <th style={styles.th}>Cliente</th>
-              <th style={styles.th}>OT</th>
-              <th style={styles.th}>Observación</th>
-            </tr>
-          </thead>
-          <tbody>
-            {historial.map((h, i) => (
-              <tr key={i} style={i === 0 ? { backgroundColor: '#e3f2fd' } : {}}>
-                <td style={styles.td}>{formatFecha(h.fecha)}</td>
-                <td style={styles.td}>
-                  {h.tipo === 'Movimiento' ? '🚚 Movimiento' : '🛠️ Mantenimiento'}
-                </td>
-                <td style={{ ...styles.td, ...estadoStyle(h.estado) }}>
-                  {h.estado || '-'}
-                </td>
-                <td style={styles.td}>{h.disponibilidad || '-'}</td>
-                <td style={styles.td}>{h.cliente || '-'}</td>
-                <td style={styles.td}>{h.ordenTrabajo || '-'}</td>
-                <td style={styles.td}>{h.observacion || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </>
-);
+        </Card>
+      )}
+    </>
+  );
 }
 
 export default Trazabilidad;

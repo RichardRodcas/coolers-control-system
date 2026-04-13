@@ -1,6 +1,6 @@
 // src/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { setAuthToken } from "./api";
+import { setAuthToken } from "./api.js";
 
 const AuthContext = createContext();
 
@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   // Login
   const login = async (email, password) => {
     try {
-      const res = await fetch("http://localhost:4000/auth/login", {
+      const res = await fetch("https://192.168.0.95:4000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -24,10 +24,13 @@ export const AuthProvider = ({ children }) => {
 
       setUser({ role: data.role, name: data.name });
       setAccessToken(data.accessToken);
-      localStorage.setItem('token', data.accessToken);
       setIsAuthed(true);
 
-      // 👇 sincroniza inmediatamente Axios
+      // Guardar en localStorage
+      localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("user", JSON.stringify({ role: data.role, name: data.name }));
+
+      // Sincroniza Axios
       setAuthToken(data.accessToken);
     } catch (err) {
       console.error("Error en login:", err);
@@ -38,7 +41,7 @@ export const AuthProvider = ({ children }) => {
   // Logout
   const logout = async () => {
     try {
-      await fetch("http://localhost:4000/auth/logout", {
+      await fetch("https://192.168.0.95:4000/auth/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -47,18 +50,22 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setAccessToken(null);
-      localStorage.removeItem('token');
       setIsAuthed(false);
 
-      // 👇 limpia Axios
+      // Limpiar localStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Limpia Axios
       setAuthToken(null);
     }
   };
 
-  // Refresh token al montar
+  // Refresh token
   const refresh = async () => {
+      console.log("[REFRESH] Intentando renovar sesión...");
     try {
-      const res = await fetch("http://localhost:4000/auth/refresh", {
+      const res = await fetch("https://192.168.0.95:4000/auth/refresh", {
         method: "POST",
         credentials: "include",
       });
@@ -66,11 +73,18 @@ export const AuthProvider = ({ children }) => {
       if (res.ok && data.accessToken) {
         setUser({ role: data.role, name: data.name });
         setAccessToken(data.accessToken);
-        localStorage.setItem('token', data.accessToken);
         setIsAuthed(true);
 
-        // 👇 sincroniza Axios
+        // Guardar en localStorage
+        localStorage.setItem("token", data.accessToken);
+        localStorage.setItem("user", JSON.stringify({ role: data.role, name: data.name }));
+
+        // Sincroniza Axios
         setAuthToken(data.accessToken);
+        console.log("[REFRESH] Sesión renovada y guardada en localStorage");
+      } else {
+        console.warn("[REFRESH] No se pudo renovar el token");
+        setIsAuthed(false);
       }
     } catch (err) {
       console.error("Error en refresh:", err);
@@ -78,11 +92,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Al montar, recuperar token/usuario de localStorage
   useEffect(() => {
-    refresh();
-  }, []);
+  console.log("[AUTH] useEffect inicial ejecutado");
 
-  // 👇 sincroniza Axios cada vez que cambie el accessToken
+  const savedToken = localStorage.getItem("token");
+  const savedUser = localStorage.getItem("user");
+
+  if (savedToken && savedUser) {
+    console.log("[AUTH] Restaurando sesión desde localStorage");
+    setAccessToken(savedToken);
+    setUser(JSON.parse(savedUser));
+    setIsAuthed(true);
+    setAuthToken(savedToken);
+
+    // 👇 Forzar refresh para validar/renovar token
+    refresh();
+  } else {
+    console.log("[AUTH] No hay token → llamando refresh()");
+    refresh();
+  }
+}, []);
+
+  // Sincroniza Axios cada vez que cambie el accessToken
   useEffect(() => {
     setAuthToken(accessToken);
   }, [accessToken]);

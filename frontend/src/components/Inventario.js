@@ -1,34 +1,41 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { getCoolers } from '../api'; 
-import { styles } from '../styles/styles';
+// src/components/Inventario.jsx
+import React, { useEffect, useState, useCallback, useContext } from 'react';
+import { getCoolers } from '../api.js'; 
+import { styles } from '../styles/styles.js';
+import "../styles/App.css";
+import { AppContext } from '../context/AppContext.js';   // ✅ Importamos el contexto
 
 function Inventario() {
-  const [coolers, setCoolers] = useState([]);
+  const { inventario, setInventario } = useContext(AppContext);  // ✅ Estado global
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 👇 usamos useCallback para memoizar la función
   const cargarInventario = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await getCoolers(); // Axios ya envía el token automáticamente
-      setCoolers(data || []); 
+      const data = await getCoolers();
+      setInventario(data || []);   // ✅ Guardamos en contexto global
     } catch (err) {
       console.error('Error al cargar inventario', err);
-      setError(err.response?.data?.mensaje || 'No se pudo cargar el inventario');
+      if (err.response?.status === 401) {
+
+      setError(err.response?.data?.mensaje || 'No se pudo cargar el inventario');}
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setInventario]);
 
   useEffect(() => {
-    cargarInventario();
-  }, [cargarInventario]);
+    // Solo cargamos si inventario está vacío, para no sobreescribir al volver
+    if (!inventario || inventario.length === 0) {
+      cargarInventario();
+    }
+  }, [cargarInventario, inventario]);
 
-  const filtrados = coolers.filter(c => {
+  const filtrados = inventario.filter(c => {
     const matchEstado = filtroEstado 
       ? c.estado?.toLowerCase() === filtroEstado.toLowerCase() 
       : true;
@@ -39,12 +46,12 @@ function Inventario() {
   });
 
   const contadores = {
-    total: coolers.length,
-    operativo: coolers.filter(c => c.estado?.toLowerCase() === 'operativo').length,
-    inoperativo: coolers.filter(c => c.estado?.toLowerCase() === 'inoperativo').length,
-    observado: coolers.filter(c => c.estado?.toLowerCase() === 'observado').length,
-    laboratorio: coolers.filter(c => c.disponibilidad?.toLowerCase() === 'laboratorio').length,
-    campo: coolers.filter(c => c.disponibilidad?.toLowerCase() === 'campo').length
+    total: inventario.length,
+    operativo: inventario.filter(c => c.estado?.toLowerCase() === 'operativo').length,
+    inoperativo: inventario.filter(c => c.estado?.toLowerCase() === 'inoperativo').length,
+    observado: inventario.filter(c => c.estado?.toLowerCase() === 'observado').length,
+    laboratorio: inventario.filter(c => c.disponibilidad?.toLowerCase() === 'laboratorio').length,
+    campo: inventario.filter(c => c.disponibilidad?.toLowerCase() === 'campo').length
   };
 
   const colorFila = (estado) => {
@@ -60,7 +67,7 @@ function Inventario() {
     <>
       <h2 style={styles.title}>📦 Inventario General</h2>
 
-      {/* Contadores + Filtros en paralelo */}
+      {/* Contadores + Filtros */}
       <div style={styles.cardContainer}>
         <div style={styles.card}>
           <div style={styles.counterRow}>
@@ -81,7 +88,6 @@ function Inventario() {
                 style={styles.input} 
                 value={filtroEstado} 
                 onChange={(e) => setFiltroEstado(e.target.value)}
-                aria-label="Filtrar por estado"
               >
                 <option value="">Todos</option>
                 <option value="operativo">Operativo</option>
@@ -95,7 +101,6 @@ function Inventario() {
                 style={styles.input} 
                 value={filtroDisponibilidad} 
                 onChange={(e) => setFiltroDisponibilidad(e.target.value)}
-                aria-label="Filtrar por disponibilidad"
               >
                 <option value="">Todas</option>
                 <option value="laboratorio">Laboratorio</option>
@@ -105,7 +110,6 @@ function Inventario() {
             <button 
               style={styles.primaryBtn} 
               onClick={cargarInventario}
-              aria-label="Refrescar inventario"
             >
               Refrescar
             </button>
@@ -118,30 +122,32 @@ function Inventario() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {filtrados.length === 0 && !loading && !error && <p>No hay coolers que coincidan con los filtros</p>}
 
-      {/* Tabla */}
+      {/* Tabla con scroll */}
       <div style={styles.card}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Código</th>
-              <th style={styles.th}>Color</th>
-              <th style={styles.th}>Estado</th>
-              <th style={styles.th}>Disponibilidad</th>
-              <th style={styles.th}>Observación</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtrados.map(c => (
-              <tr key={c.codigo} style={{ background: colorFila(c.estado) }}>
-                <td style={styles.td}>{c.codigo}</td>
-                <td style={styles.td}>{c.color || '-'}</td>
-                <td style={styles.td}>{c.estado}</td>
-                <td style={styles.td}>{c.disponibilidad || '-'}</td>
-                <td style={styles.td}>{c.observacion || '-'}</td>
+        <div style={styles.tableScroll}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Código</th>
+                <th style={styles.th}>Color</th>
+                <th style={styles.th}>Estado</th>
+                <th style={styles.th}>Disponibilidad</th>
+                <th style={styles.th}>Observación</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtrados.map((c) => (
+                <tr key={c.codigo} style={{ background: colorFila(c.estado) }}>
+                  <td style={styles.td}>{c.codigo}</td>
+                  <td style={styles.td}>{c.color || "-"}</td>
+                  <td style={styles.td}>{c.estado}</td>
+                  <td style={styles.td}>{c.disponibilidad || "-"}</td>
+                  <td style={styles.td}>{c.observacion || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );

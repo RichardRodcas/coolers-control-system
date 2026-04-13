@@ -1,6 +1,7 @@
 import React from 'react';
-import { styles } from '../styles/styles';
-import { useAuth } from '../AuthContext';
+import { styles } from '../styles/styles.js';
+import { useAuth } from '../AuthContext.jsx';
+import "../styles/App.css";
 
 function MenuPrincipal({ onNavigate, children }) {
   const { isAuthed, user } = useAuth();
@@ -15,7 +16,7 @@ function MenuPrincipal({ onNavigate, children }) {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: 225 }}>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar lateral */}
       <aside
         style={{
@@ -31,7 +32,6 @@ function MenuPrincipal({ onNavigate, children }) {
           Bienvenido, {userName} {isAuthed && `(${user?.role})`}
         </h3>
 
-        {/* ✅ Aquí estaba el error: antes usabas text-align:center */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {(user?.role === 'operador_ingreso' || user?.role === 'admin') && (
             <button
@@ -65,8 +65,16 @@ function MenuPrincipal({ onNavigate, children }) {
             🔎 Trazabilidad
           </button>
 
-          {user?.role === 'admin' && (
+          {/* Bloque compartido entre admin y operador_salida */}
+          {['admin','operador_salida'].includes(user?.role) && (
             <>
+              <button
+                style={{ ...styles.navBtn, ...styles.btnBuscarOT }}
+                onClick={() => handleNavigate('buscarPorOT')}
+              >
+                📋 Buscar por OT
+              </button>
+
               <button
                 style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
                 onClick={() => handleNavigate('mantenimiento')}
@@ -74,6 +82,18 @@ function MenuPrincipal({ onNavigate, children }) {
                 🛠️ Mantenimiento Coolers
               </button>
 
+              <button
+                style={{ ...styles.navBtn, ...styles.btnClientes }}
+                onClick={() => handleNavigate('registroClientes')}
+              >
+                👤 Clientes
+              </button>
+            </>
+          )}
+
+          {/* Bloque exclusivo de admin */}
+          {user?.role === 'admin' && (
+            <>
               <button
                 style={{ ...styles.navBtn, ...styles.btnRegistro }}
                 onClick={() => handleNavigate('registroUsuario')}
@@ -87,14 +107,16 @@ function MenuPrincipal({ onNavigate, children }) {
               >
                 👥 Mantenimiento Usuario
               </button>
-
-              <button
-                style={{ ...styles.navBtn, ...styles.btnClientes }}
-                onClick={() => handleNavigate('registroClientes')}
-              >
-                👤 Clientes
-              </button>
             </>
+          )}
+
+          {isAuthed && (
+            <button
+              style={{ ...styles.navBtn, backgroundColor: "#ff9800", color: "#fff" }}
+              onClick={() => handleNavigate("cambiarPassword")}
+            >
+              🔑 Cambiar Contraseña
+            </button>
           )}
         </nav>
       </aside>

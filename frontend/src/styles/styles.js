@@ -102,6 +102,10 @@ export const styles = {
     background: 'linear-gradient(45deg, #00897b, #26a69a)', // turquesa (usuarios)
     color: '#fff'
   },
+  btnBuscarOT: {
+    background: 'linear-gradient(45deg, #f57c00, #ffb74d)', // naranja (OT)
+    color: '#fff'
+  },
   btnClientes: {
     backgroundColor: "#4caf50",
     color: "#fff"
@@ -141,27 +145,13 @@ tableWrapper: {
   justifyContent: 'center', // centra la tabla horizontalmente
    marginTop: 20
 },
-table: {
-  width: 'auto',            // 👈 evita ocupar 100% para que se centre
-  borderCollapse: 'collapse',
-  fontSize: '14px'
-},
-th: {
-  background: '#eeeeee',
-  textAlign: 'left',
-  padding: '8px',
-  borderBottom: '1px solid #ccc'
-},
+
+
 tr: {
   textAlign: 'left',
   verticalAlign: 'middle'
 },
-td: {
-  padding: '8px',
-  borderBottom: '1px solid #eee',
-  textAlign: 'left',
-  verticalAlign: 'middle'
-},
+
 
   // Timeline (Trazabilidad)
   timeline: {
@@ -272,4 +262,38 @@ td: {
     padding: '8px 12px',
     borderBottom: '1px solid #eeeeee'
   },
+  // Contenedor con scroll para tablas
+  tableScroll: {
+    height: 300,          // altura fija del contenedor
+    overflowY: 'auto',       // activa scroll vertical
+    overflowX: 'hidden',     // evita scroll horizontal innecesario
+    display: 'block',        // asegura que el div se comporte como bloque
+    marginTop: 20,
+    border: '1px solid #ddd',
+    borderRadius: 6,
+    flex: 'none',
+  },
+
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '14px',
+  },
+  th: {
+    background: '#eeeeee',
+    textAlign: 'left',
+    padding: '8px',
+    borderBottom: '1px solid #ccc',
+    position: 'sticky',   // 👈 mantiene encabezado fijo
+    top: 0,
+    zIndex: 2,
+  },
+  td: {
+    padding: '8px',
+    borderBottom: '1px solid #eee',
+    textAlign: 'left',
+    verticalAlign: 'middle',
+  },
+
 }
+
