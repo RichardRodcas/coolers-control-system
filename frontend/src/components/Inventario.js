@@ -141,7 +141,16 @@ function Inventario() {
                   <td style={styles.td}>{c.codigo}</td>
                   <td style={styles.td}>{c.color || "-"}</td>
                   <td style={styles.td}>{c.estado}</td>
-                  <td style={styles.td}>{c.disponibilidad || "-"}</td>
+                  <td
+                    style={{
+                    ...styles.td,
+                     color: c.disponibilidad?.toLowerCase() === "campo" ? "orange" : "inherit",
+                      fontWeight: c.disponibilidad?.toLowerCase() === "campo" ? "bold" : "normal"
+                    }}
+                     >
+                     {c.disponibilidad || "-"}
+                   </td>
+
                   <td style={styles.td}>{c.observacion || "-"}</td>
                 </tr>
               ))}

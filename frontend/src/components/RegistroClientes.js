@@ -14,9 +14,9 @@ const RegistroClientes = () => {
   const token = localStorage.getItem("token");
 
   // ✅ useMemo dentro del componente
-  const authHeaders = useMemo(() => (
+  const authHeaders = useMemo(() =>
     token ? { "Authorization": `Bearer ${token}` } : {}
-  ), [token]);
+  , [token]);
 
   useEffect(() => {
     const cargar = async () => {
@@ -36,10 +36,10 @@ const RegistroClientes = () => {
         setClientesState(prev => ({ ...prev, error: err.message }));
       }
     };
-    if (isAuthed && user?.role === "admin" && clientes.length === 0) cargar();
+    if (isAuthed && ["admin", "operador_salida"].includes(user?.role) && clientes.length === 0) cargar();
   }, [isAuthed, user, token, authHeaders, setClientesState, clientes.length]);
 
-  if (!isAuthed || user?.role !== "admin") {
+  if (!isAuthed || !["admin", "operador_salida"].includes(user?.role)) {
     return <p>No tienes permisos para acceder a este módulo.</p>;
   }
 

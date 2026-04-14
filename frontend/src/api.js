@@ -49,6 +49,11 @@ export const salidaCoolers = async (codigos, clienteRuc, ordenTrabajo) => {
   return res.data;
 };
 
+export const recepcionCoolers= async (codigos) => {
+  const res = await api.post("/coolers/recepcion", { codigos });
+  return res.data;
+}
+
 export const createCooler = async (cooler) => {
   const res = await api.post("/coolers/nuevo", cooler);
   return res.data;
@@ -134,3 +139,12 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+//========= Cambio de contraseña ==========
+export async function updatePassword(oldPassword, newPassword) {
+  const res = await authApi.put("/auth/update-password", {
+    oldPassword,
+    newPassword,
+  });
+  return res.data;
+}

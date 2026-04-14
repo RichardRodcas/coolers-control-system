@@ -47,11 +47,11 @@ function BuscarPorOT({ userRole }) {
   };
 
   // Solo admins ven este módulo
-  if (userRole !== 'admin') return null;
+  if (!['admin', 'operador_salida'].includes(userRole)) return null;
 
   return (
     <>
-      <h2 style={styles.title}>📋 Coolers en campo por Orden de Trabajo</h2>
+      <h2 style={styles.title}>📋 Coolers en campo por Solicitud de Servicio</h2>
       <CardContainer>
         <Card>
           <div style={styles.formRow}>
@@ -78,20 +78,38 @@ function BuscarPorOT({ userRole }) {
                     <th style={styles.th}>Estado</th>
                     <th style={styles.th}>Disponibilidad</th>
                     <th style={styles.th}>Cliente</th>
-                    <th style={styles.th}>OT</th>
+                    <th style={styles.th}>Nº Solicitud</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {buscarOT.resultados.map((c, i) => (
-                    <tr key={i}>
-                      <td style={styles.td}>{c.codigo}</td>
-                      <td style={styles.td}>{c.color}</td>
-                      <td style={{ ...styles.td, ...estadoStyle(c.estado) }}>{c.estado}</td>
-                      <td style={styles.td}>{c.disponibilidad}</td>
-                      <td style={styles.td}>{c.cliente}</td>
-                      <td style={styles.td}>{c.orden_trabajo}</td>
-                    </tr>
-                  ))}
+                  {buscarOT.resultados.map((c, i) => {
+    // Estilo de fila según disponibilidad
+    const rowStyle = (() => {
+      if (c.disponibilidad?.toLowerCase() === "campo") {
+        return { backgroundColor: "#fff59d" }; // amarillo claro
+      }
+      if (
+        ["laboratorio", "muestra recepcionada"].includes(
+          c.disponibilidad?.toLowerCase()
+        )
+      ) {
+        return { backgroundColor: "#c8e6c9" }; // verde claro
+      }
+      return {};
+    })();
+
+    return (
+      <tr key={i} style={rowStyle}>
+        <td style={styles.td}>{c.codigo}</td>
+        <td style={styles.td}>{c.color}</td>
+        <td style={{ ...styles.td, ...estadoStyle(c.estado) }}>{c.estado}</td>
+        <td style={styles.td}>{c.disponibilidad}</td>
+        <td style={styles.td}>{c.cliente}</td>
+        <td style={styles.td}>{c.orden_trabajo}</td>
+      </tr>
+    );
+  })}
+
                 </tbody>
               </table>
             </div>

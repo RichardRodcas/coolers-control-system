@@ -1,5 +1,6 @@
 // src/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 import { setAuthToken } from "./api.js";
 
 const AuthContext = createContext();
@@ -8,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [loading, setLoading] = useState(true); // 👈 nuevo flag
 
   // Login
   const login = async (email, password) => {
@@ -22,15 +24,13 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error en login");
 
-      setUser({ role: data.role, name: data.name });
+      setUser(data.user || { role: data.role, name: data.name });
       setAccessToken(data.accessToken);
       setIsAuthed(true);
 
-      // Guardar en localStorage
       localStorage.setItem("token", data.accessToken);
-      localStorage.setItem("user", JSON.stringify({ role: data.role, name: data.name }));
+      localStorage.setItem("user", JSON.stringify(data.user || { role: data.role, name: data.name }));
 
-      // Sincroniza Axios
       setAuthToken(data.accessToken);
     } catch (err) {
       console.error("Error en login:", err);
@@ -51,19 +51,15 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setAccessToken(null);
       setIsAuthed(false);
-
-      // Limpiar localStorage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-
-      // Limpia Axios
       setAuthToken(null);
     }
   };
 
   // Refresh token
   const refresh = async () => {
-      console.log("[REFRESH] Intentando renovar sesión...");
+    console.log("[REFRESH] Intentando renovar sesión...");
     try {
       const res = await fetch("https://192.168.0.95:4000/auth/refresh", {
         method: "POST",
@@ -71,15 +67,13 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (res.ok && data.accessToken) {
-        setUser({ role: data.role, name: data.name });
+        setUser(data.user || { role: data.role, name: data.name });
         setAccessToken(data.accessToken);
         setIsAuthed(true);
 
-        // Guardar en localStorage
         localStorage.setItem("token", data.accessToken);
-        localStorage.setItem("user", JSON.stringify({ role: data.role, name: data.name }));
+        localStorage.setItem("user", JSON.stringify(data.user || { role: data.role, name: data.name }));
 
-        // Sincroniza Axios
         setAuthToken(data.accessToken);
         console.log("[REFRESH] Sesión renovada y guardada en localStorage");
       } else {
@@ -92,35 +86,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Al montar, recuperar token/usuario de localStorage
+  // Al montar, recuperar token/usuario de localStorage y forzar refresh
   useEffect(() => {
-  console.log("[AUTH] useEffect inicial ejecutado");
+    console.log("[AUTH] useEffect inicial ejecutado");
+    const savedToken = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
 
-  const savedToken = localStorage.getItem("token");
-  const savedUser = localStorage.getItem("user");
-
-  if (savedToken && savedUser) {
-    console.log("[AUTH] Restaurando sesión desde localStorage");
-    setAccessToken(savedToken);
-    setUser(JSON.parse(savedUser));
-    setIsAuthed(true);
-    setAuthToken(savedToken);
-
-    // 👇 Forzar refresh para validar/renovar token
-    refresh();
-  } else {
-    console.log("[AUTH] No hay token → llamando refresh()");
-    refresh();
-  }
-}, []);
+    if (savedToken && savedUser) {
+      console.log("[AUTH] Restaurando sesión desde localStorage");
+      setAccessToken(savedToken);
+      setUser(JSON.parse(savedUser));
+      setAuthToken(savedToken);
+    }
+    refresh().finally(() => setLoading(false));
+  }, []);
 
   // Sincroniza Axios cada vez que cambie el accessToken
   useEffect(() => {
     setAuthToken(accessToken);
   }, [accessToken]);
 
+  // 👇 Interceptor Axios para manejar 401 automáticamente
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      res => res,
+      async (error) => {
+        if (error.response?.status === 401) {
+          try {
+            await refresh();
+            error.config.headers["Authorization"] = `Bearer ${localStorage.getItem("token")}`;
+            return axios(error.config);
+          } catch (err) {
+            logout();
+            return Promise.reject(err);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(interceptor);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, accessToken, isAuthed, login, logout, refresh }}>
+    <AuthContext.Provider value={{ user, accessToken, isAuthed, loading, login, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

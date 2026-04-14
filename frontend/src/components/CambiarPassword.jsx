@@ -1,26 +1,42 @@
-// src/views/CambiarPassword.jsx
 import React, { useState } from "react";
 import { updatePassword } from "../api.js";
 
 function CambiarPassword() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage(null);
+    setError(null);
     try {
       const res = await updatePassword(oldPassword, newPassword);
-      alert(res.message);
+      setMessage(res.message); // éxito
       setOldPassword("");
       setNewPassword("");
     } catch (err) {
-      alert(err.response?.data?.error || "Error al actualizar contraseña");
+      setError(err.response?.data?.message || "Error al actualizar contraseña");
     }
   };
 
   return (
     <div style={{ maxWidth: 400 }}>
       <h2>🔑 Cambiar Contraseña</h2>
+
+      {/* Mensajes de feedback */}
+      {message && (
+        <div style={{ background: "#d4edda", color: "#155724", padding: "8px", borderRadius: "4px", marginBottom: "12px" }}>
+          {message}
+        </div>
+      )}
+      {error && (
+        <div style={{ background: "#f8d7da", color: "#721c24", padding: "8px", borderRadius: "4px", marginBottom: "12px" }}>
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <label>Contraseña actual</label>

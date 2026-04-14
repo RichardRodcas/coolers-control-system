@@ -5,7 +5,7 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
+import bcrypt from 'bcrypt';
 import { pool } from './db.js';        // 👈 Usamos el pool centralizado
 import { requireAuth } from './middleware/auth.js';
 
@@ -51,7 +51,7 @@ app.use((req, res, next) => {
   }
 });*/
 
-// Ejemplo: ingreso de cooler
+/*// Ejemplo: ingreso de cooler
 app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (req, res) => {
   try {
     const { codigo, descripcion } = req.body;
@@ -64,7 +64,7 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
     console.error("[ERROR] /coolers/ingreso:", err);
     res.status(500).json({ error: 'Error interno' });
   }
-});
+});*/
 
 // Utilidad de normalización
 const norm = s => String(s ?? '').trim().toLowerCase();
@@ -144,15 +144,15 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
     for (const rawCodigo of codigos) {
       const codigo = String(rawCodigo || '').trim();
 
-      // Actualizar estado actual del cooler
+      // 1. Actualizar estado actual del cooler
       const updateResult = await client.query(
         `UPDATE coolers
            SET disponibilidad='Laboratorio',
                cliente_ruc=NULL,
                actualizado_en=NOW()
          WHERE codigo=$1
-           AND LOWER(TRIM(estado))='operativo'
-           AND LOWER(TRIM(disponibilidad))='campo'
+           AND estado ILIKE 'Operativo'
+           AND disponibilidad ILIKE 'Campo'
          RETURNING codigo`,
         [codigo]
       );
@@ -174,28 +174,32 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
         continue;
       }
 
-      // Buscar la última OT de salida para este cooler
-      const prevSalida = await client.query(
-        `SELECT orden_trabajo
-         FROM movimientos_cooler
-         WHERE cooler_codigo=$1 AND tipo='Salida'
-         ORDER BY fecha DESC
-         LIMIT 1`,
-        [codigo]
-      );
-
-      const ot = prevSalida.rowCount ? prevSalida.rows[0].orden_trabajo : null;
-
-      // Insertar movimiento de ingreso vinculado a la OT encontrada
+      // 2. Insertar movimiento de ingreso vinculado a la última OT de salida (si existe)
       await client.query(
-        `INSERT INTO movimientos_cooler (
-           cooler_codigo, tipo, realizado_por,
-           estado_resultante, disponibilidad_resultante,
-           estado_evento, disponibilidad_evento,
-           observacion, orden_trabajo
-         ) VALUES ($1,'Ingreso',$2,'Operativo','Laboratorio',
-                   'Operativo','Laboratorio','Ingreso registrado',$3)`,
-        [codigo, req.user.sub, ot]
+        `WITH ultima_salida AS (
+           SELECT orden_trabajo
+           FROM movimientos_cooler
+           WHERE cooler_codigo=$1 AND tipo='Salida'
+           ORDER BY fecha DESC
+           LIMIT 1
+         )
+         INSERT INTO movimientos_cooler (
+           cooler_codigo, fecha, tipo, hacia_cliente_ruc,
+           realizado_por, estado_resultante, disponibilidad_resultante,
+           observacion, orden_trabajo, estado_evento, disponibilidad_evento
+         )
+         SELECT
+           $1, NOW(), 'Ingreso', NULL,
+           $2, 'Operativo', 'Laboratorio',
+           'Ingreso registrado', ultima_salida.orden_trabajo, 'Operativo', 'Laboratorio'
+         FROM ultima_salida
+         UNION ALL
+         SELECT
+           $1, NOW(), 'Ingreso', NULL,
+           $2, 'Operativo', 'Laboratorio',
+           'Ingreso registrado', NULL, 'Operativo', 'Laboratorio'
+         WHERE NOT EXISTS (SELECT 1 FROM ultima_salida);`,
+        [codigo, req.user.sub]
       );
     }
 
@@ -214,11 +218,87 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
   } finally {
     client.release();
   }
-}); 
+});
+
+// Recepción de coolers
+app.post('/coolers/recepcion', requireAuth(['recepcion_muestras','admin']), async (req, res) => {
+  const { codigos = [] } = req.body;
+  if (!Array.isArray(codigos) || codigos.length === 0) {
+    return res.status(400).json({ ok: false, mensaje: 'Debes enviar al menos un código' });
+  }
+
+  const client = await pool.connect();
+  const errores = [];
+
+  try {
+    await client.query('BEGIN');
+
+    for (const rawCodigo of codigos) {
+      const codigo = String(rawCodigo || '').trim();
+
+      // 1. Actualizar estado actual del cooler
+      const updateResult = await client.query(
+        `UPDATE coolers
+           SET disponibilidad='Muestras recibidas',
+               actualizado_en=NOW()
+         WHERE codigo=$1
+           AND estado ILIKE 'Operativo'
+           AND (disponibilidad ILIKE 'Laboratorio' OR disponibilidad ILIKE 'Campo')
+         RETURNING codigo`,
+        [codigo]
+      );
+
+      if (updateResult.rowCount === 0) {
+        const prev = await client.query(
+          `SELECT estado, disponibilidad FROM coolers WHERE codigo=$1`,
+          [codigo]
+        );
+        if (prev.rowCount === 0) {
+          errores.push({ codigo, mensaje: 'Cooler no existe' });
+        } else {
+          const { estado, disponibilidad } = prev.rows[0];
+          errores.push({
+            codigo,
+            mensaje: `No puede recepcionarse: estado=${estado}, disponibilidad=${disponibilidad}. Debe estar Operativo y en Laboratorio o Campo`
+          });
+        }
+        continue;
+      }
+
+      // 2. Insertar movimiento de recepción
+      await client.query(
+        `INSERT INTO movimientos_cooler (
+           cooler_codigo, fecha, tipo,
+           realizado_por, estado_resultante, disponibilidad_resultante,
+           observacion, estado_evento, disponibilidad_evento
+         )
+         VALUES ($1, NOW(), 'Recepción',
+                 $2, 'Operativo', 'Muestras recibidas',
+                 'Recepción registrada', 'Operativo', 'Muestras recibidas')`,
+        [codigo, req.user.sub]
+      );
+    }
+
+    await client.query('COMMIT');
+    const ok = errores.length === 0;
+    const mensaje = ok
+      ? `Recepción registrada para ${codigos.length} cooler(s)`
+      : `Recepción parcial: ${codigos.length - errores.length} ok, ${errores.length} con observaciones`;
+    res.json({ ok, mensaje, errores });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ ok: false, mensaje: 'Error registrando recepción' });
+
+  } finally {
+    client.release();
+  }
+});
 
 // Salida de coolers
 app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req, res) => {
-  const { codigos = [], clienteRuc, ordenTrabajo } = req.body; // 👈 RUC directo
+  const { codigos = [], clienteRuc, ordenTrabajo } = req.body;
   if (!Array.isArray(codigos) || codigos.length === 0) {
     return res.status(400).json({ ok: false, mensaje: 'Debes enviar al menos un código' });
   }
@@ -235,6 +315,7 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
     for (const rawCodigo of codigos) {
       const codigo = String(rawCodigo || '').trim();
 
+      // ✅ Permitir salida desde Laboratorio o Muestras Recibidas
       const updateResult = await client.query(
         `UPDATE coolers
            SET disponibilidad='Campo',
@@ -242,7 +323,7 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
                actualizado_en=NOW()
          WHERE codigo=$1
            AND LOWER(TRIM(estado))='operativo'
-           AND LOWER(TRIM(disponibilidad))='laboratorio'
+           AND (LOWER(TRIM(disponibilidad))='laboratorio' OR LOWER(TRIM(disponibilidad))='muestras recibidas')
          RETURNING codigo`,
         [codigo, clienteRuc]
       );
@@ -258,12 +339,13 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
           const { estado, disponibilidad } = prev.rows[0];
           errores.push({
             codigo,
-            mensaje: `No puede salir: estado=${estado}, disponibilidad=${disponibilidad}. Debe estar Operativo y en Laboratorio`
+            mensaje: `No puede salir: estado=${estado}, disponibilidad=${disponibilidad}. Debe estar Operativo y en Laboratorio o Muestras Recibidas`
           });
         }
         continue;
       }
 
+      // Registrar movimiento de salida
       await client.query(
         `INSERT INTO movimientos_cooler (
            cooler_codigo, tipo, hacia_cliente_ruc, realizado_por,
@@ -291,48 +373,7 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
   } finally {
     client.release();
   }
-}); // 👈 cierre correcto del app.post
-
-//actualizar mantenimiento de cooler
-app.put('/coolers/:codigo/mantenimiento', requireAuth(['admin', 'operador_salida']), async (req, res) => {
-  const codigo = String(req.params.codigo || '').trim().toUpperCase(); // 👈 normaliza
-  const { estado, observacion = '', tipo = 'Correctivo', descripcion = 'Actualización de estado' } = req.body;
-
-  try {
-    const result = await pool.query('SELECT * FROM coolers WHERE UPPER(TRIM(codigo))=$1', [codigo]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ ok: false, mensaje: `Cooler ${codigo} no encontrado` });
-    }
-
-    const estadoValido = validarEstado(estado);
-    if (!estadoValido) {
-      return res.status(400).json({ ok: false, mensaje: `Estado inválido: ${estado}` });
-    }
-
-    const nuevaObservacion = estadoValido.toLowerCase() === 'operativo' ? '': observacion;
-
-    await pool.query(
-      `UPDATE coolers
-         SET estado=$1, observacion=$2, actualizado_en=NOW()
-       WHERE UPPER(TRIM(codigo))=$3`,
-      [estadoValido, nuevaObservacion, codigo]
-    );
-
-    await pool.query(
-      `INSERT INTO mantenimiento_cooler (
-         cooler_codigo, tipo, descripcion, realizado_por,
-         estado_resultante, observacion
-       ) VALUES ($1,$2,$3,$4,$5,$6)`,
-      [codigo, tipo, descripcion, req.user.sub, estadoValido, nuevaObservacion]
-    );
-
-    res.json({ ok: true, mensaje: `Cooler ${codigo} actualizado y mantenimiento registrado` });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ ok: false, mensaje: 'Error en mantenimiento' });
-  }
 });
-
 // Eliminar mantenimiento de cooler
 app.delete('/coolers/:codigo', requireAuth(['admin']), async (req, res) => {
   const codigo = String(req.params.codigo || '').trim().toUpperCase();
@@ -547,12 +588,13 @@ app.put('/auth/usuarios/:email', requireAuth(['admin']), async (req, res) => {
     return res.status(400).json({ ok: false, mensaje: 'name, newEmail y role son obligatorios' });
   }
 
-  if (!['admin','operador_ingreso','operador_salida'].includes(role)) {
+  // ✅ Ampliar lista de roles permitidos
+  const rolesPermitidos = ['admin','operador_ingreso','operador_salida','recepcion_muestras'];
+  if (!rolesPermitidos.includes(role)) {
     return res.status(400).json({ ok: false, mensaje: `Rol inválido: ${role}` });
   }
 
   try {
-    // Validar que el nuevo email no esté ocupado por otro usuario
     const exists = await pool.query(
       'SELECT 1 FROM usuarios WHERE email=$1 AND email<>$2',
       [newEmail, email]
@@ -749,6 +791,55 @@ app.get('/coolers/por-ot/:ordenTrabajo', requireAuth(['admin', 'operador_salida'
   }
 });
 
+//======Actualizar Contraseña de Usuario======
+app.post('/usuarios/update-password', requireAuth(['usuario','admin']), async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.user.sub; // ID del usuario autenticado
+
+  try {
+    // 1. Obtener contraseña actual
+    const result = await pool.query('SELECT password FROM usuarios WHERE id=$1', [userId]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, message: 'Usuario no encontrado' });
+    }
+
+    const currentHash = result.rows[0].password;
+
+    // 2. Validar contraseña actual
+    const match = await bcrypt.compare(oldPassword, currentHash);
+    if (!match) {
+      return res.status(400).json({ ok: false, message: 'Contraseña actual incorrecta' });
+    }
+
+    // 3. Hashear nueva contraseña
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    // 4. Actualizar en DB
+    await pool.query('UPDATE usuarios SET password=$1 WHERE id=$2', [newHash, userId]);
+
+    res.json({ ok: true, message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    console.error("[ERROR] /usuarios/update-password:", err);
+    res.status(500).json({ ok: false, message: 'Error interno' });
+  }
+});
+
+// ======================= Reset global de tokens =======================
+const refreshTokens = new Set();
+app.post('/auth/reset-tokens', (req, res) => {
+  try {
+    refreshTokens.clear(); // ✅ borra todos los refresh tokens en memoria
+    res.json({
+      ok: true,
+      mensaje: 'Todos los tokens han sido reseteados. Los usuarios deben volver a iniciar sesión.'
+    });
+  } catch (err) {
+    console.error('[RESET TOKENS ERROR]', err);
+    res.status(500).json({ ok: false, mensaje: 'Error reseteando tokens' });
+  }
+});
+
+
 // ======================= SERVIDOR =======================
 const PORT = process.env.SERVER_PORT || 5000;
 
@@ -758,3 +849,5 @@ https.createServer({
 }, app).listen(PORT, () => {
   console.log(`Servidor en https://192.168.0.95:${PORT}`);
 });
+
+

@@ -145,6 +145,7 @@ export default function MantenimientoUsuario() {
                     >
                       <option value="operador_ingreso">Operador Ingreso</option>
                       <option value="operador_salida">Operador Salida</option>
+                      <option value="recepcion_muestras">Recepción de Muestras</option>
                       <option value="admin">Administrador</option>
                     </select>
                   </td>

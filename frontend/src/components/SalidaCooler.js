@@ -52,7 +52,7 @@ function SalidaCooler() {
   const registrarSalida = async () => {
     setSalida(prev => ({ ...prev, feedback: null }));
     if (!clienteSeleccionado || !ordenTrabajo.trim()) {
-      setSalida(prev => ({ ...prev, feedback: { tipo: 'error', mensaje: 'Cliente y OT obligatorios', errores: [] } }));
+      setSalida(prev => ({ ...prev, feedback: { tipo: 'error', mensaje: 'Cliente y SS obligatorios', errores: [] } }));
       return;
     }
     try {

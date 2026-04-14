@@ -53,6 +53,10 @@ export function AppProvider({ children }) {
     mensaje: '',
     error: ''
   });
+  const [recepcion, setRecepcion] = useState({
+    codigos: [],
+    feedback: null
+  });
 
   return (
     <AppContext.Provider value={{
@@ -63,7 +67,8 @@ export function AppProvider({ children }) {
       salida, setSalida,
       mantenimiento, setMantenimiento,
       usuariosState, setUsuariosState,
-      clientesState, setClientesState
+      clientesState, setClientesState,
+      recepcion, setRecepcion
     }}>
       {children}
     </AppContext.Provider>

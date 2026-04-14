@@ -5,6 +5,9 @@ import "../styles/App.css";
 
 function MenuPrincipal({ onNavigate, children }) {
   const { isAuthed, user } = useAuth();
+
+  console.log("[MenuPrincipal] isAuthed:", isAuthed, "user:", user);
+
   const userName = isAuthed ? user?.name : 'Invitado';
 
   const handleNavigate = (vista) => {
@@ -17,6 +20,7 @@ function MenuPrincipal({ onNavigate, children }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      
       {/* Sidebar lateral */}
       <aside
         style={{
@@ -51,6 +55,15 @@ function MenuPrincipal({ onNavigate, children }) {
             </button>
           )}
 
+          {(user?.role === 'recepcion_muestras' || user?.role === 'admin') && (
+            <button
+              style={{ ...styles.navBtn, backgroundColor: "#6a1b9a", color: "#fff" }}
+              onClick={() => handleNavigate('recepcionMuestras')}
+            >
+              🧪 Recepción de Muestras
+            </button>
+          )}
+
           <button
             style={{ ...styles.navBtn, ...styles.btnInventario }}
             onClick={() => handleNavigate('inventario')}
@@ -72,7 +85,7 @@ function MenuPrincipal({ onNavigate, children }) {
                 style={{ ...styles.navBtn, ...styles.btnBuscarOT }}
                 onClick={() => handleNavigate('buscarPorOT')}
               >
-                📋 Buscar por OT
+                📋 Buscar por SS
               </button>
 
               <button
@@ -98,7 +111,7 @@ function MenuPrincipal({ onNavigate, children }) {
                 style={{ ...styles.navBtn, ...styles.btnRegistro }}
                 onClick={() => handleNavigate('registroUsuario')}
               >
-                📝 Registro Usuario
+                📝 Registro de Usuario
               </button>
 
               <button

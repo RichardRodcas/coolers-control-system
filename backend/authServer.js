@@ -7,7 +7,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import Joi from 'joi';
 import dotenv from 'dotenv';
-import { requireAuth } from './middleware/auth.js';
+import { requireAuth } from './middleware/auth.js';   // 👈 Importamos solo desde middleware
 import { pool } from './db.js';   // 👈 Usamos el pool centralizado
 
 import https from 'https';
@@ -59,31 +59,11 @@ const issueTokens = (payload) => {
   return { accessToken, refreshToken };
 };
 
-// ======================= Middleware exportable =======================
-/*export const requireAuth = (roles = []) => (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) {
-    console.warn("[AUTH] No se recibió Authorization header");
-    return res.status(401).json({ error: 'Sin token' });
-  }
-  const token = auth.slice(7);
-  try {
-    const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
-    if (roles.length && !roles.includes(decoded.role)) {
-      return res.status(403).json({ error: 'Acceso denegado' });
-    }
-    req.user = decoded;
-    next();
-  } catch (err){
-    return res.status(401).json({ error: 'Token inválido/expirado' });
-  }
-};*/
-
 // ======================= Validación con Joi =======================
 const registerSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
-  role: Joi.string().valid('operador_ingreso','operador_salida','admin').default('operador_ingreso'),
+  role: Joi.string().valid('operador_ingreso','operador_salida','recepcion_muestras','admin').default('operador_ingreso'),
   name: Joi.string().min(2).required()
 });
 

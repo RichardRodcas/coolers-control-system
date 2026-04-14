@@ -20,16 +20,30 @@ import MantenimientoUsuario from './components/MantenimientoUsuario';
 import RegistroClientes from './components/RegistroClientes';
 import BuscarPorOT  from './components/BuscarPorOT';
 import CambiarPassword from './components/CambiarPassword';
+import RecepcionMuestras from './components/RecepcionMuestras';
+
 // Wrapper para proteger vistas según login y rol
 function Private({ roles = [], children }) {
-  const { isAuthed, user } = useAuth();
-  if (!isAuthed) return <Navigate to="/login" replace />;
-  if (roles.length && !roles.includes(user?.role)) return <div>Acceso denegado</div>;
+  const { isAuthed, user, loading } = useAuth();
+
+  if (loading) {
+    return <div>Cargando sesión...</div>; // evita redirección prematura
+  }
+
+  if (!isAuthed) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (roles.length && !roles.includes(user?.role)) {
+    return <div>Acceso denegado</div>;
+  }
+
   return children;
 }
 
 // Layout del dashboard
 function Dashboard() {
+  console.log("[Dashboard] Renderizando Dashboard");
   const { user, logout } = useAuth();
   const [vista, setVista] = useState('inventario');
 
@@ -38,6 +52,10 @@ function Dashboard() {
       case 'ingreso':
         return user?.role === 'operador_ingreso' || user?.role === 'admin'
           ? <IngresoCooler />
+          : <div>Acceso denegado</div>;
+      case 'recepcionMuestras':
+        return user?.role === 'recepcion_muestras' || user?.role === 'admin'
+          ? <RecepcionMuestras />
           : <div>Acceso denegado</div>;
       case 'salida':
         return user?.role === 'operador_salida' || user?.role === 'admin'
@@ -48,15 +66,15 @@ function Dashboard() {
       case 'trazabilidad':
         return <Trazabilidad />;
       case 'mantenimiento':
-        return user?.role === 'admin' ? <MantenimientoCooler /> : <div>Acceso denegado</div>;
+        return user?.role === 'admin' || user?.role === 'operador_salida' ? <MantenimientoCooler /> : <div>Acceso denegado</div>;
       case 'registroUsuario':
         return user?.role === 'admin' ? <RegisterForm /> : <div>Acceso denegado</div>;
       case 'registroClientes':
-        return user?.role === 'admin' ? <RegistroClientes /> : <div>Acceso denegado</div>;
+        return user?.role === 'admin' || user?.role === 'operador_salida' ? <RegistroClientes /> : <div>Acceso denegado</div>;
       case 'mantenimientoUsuario':
         return user?.role === 'admin' ? <MantenimientoUsuario /> : <div>Acceso denegado</div>;
       case 'buscarPorOT':
-        return user?.role === 'admin' ? <BuscarPorOT userRole={user?.role} /> : <div>Acceso denegado</div>;
+        return user?.role === 'admin' || user?.role === 'operador_salida' ? <BuscarPorOT userRole={user?.role} /> : <div>Acceso denegado</div>;
       case 'cambiarPassword':
         return <CambiarPassword />;
       default:
@@ -78,10 +96,7 @@ function Dashboard() {
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        {/* Zona izquierda vacía */}
         <div style={{ width: 150 }}></div>
-
-        {/* Centro: logo + título */}
         <div style={{ textAlign: 'center', flexGrow: 1 }}>
           <img
             src="/logo-typsa.png"
@@ -90,8 +105,6 @@ function Dashboard() {
           />
           <h1 style={{ color: '#1976d2', margin: 0 }}>⚙️ Control de Coolers TYPSA</h1>
         </div>
-
-        {/* Derecha: usuario */}
         {user && (
           <div style={{ textAlign: 'right', width: 150 }}>
             <p style={{ margin: 0 }}>👤 {user.name} ({user.role})</p>
@@ -100,15 +113,10 @@ function Dashboard() {
         )}
       </header>
 
-      {/* Barra de navegación */}
-      <nav style={{ marginTop: 12, textAlign: 'center', width: '225px', float: 'left' }}>
-        <MenuPrincipal onNavigate={setVista} />
-      </nav>
-
-      {/* Contenido dinámico protegido */}
-      <main style={{ padding: 20 }}>
+      {/* Menú lateral + contenido dinámico */}
+      <MenuPrincipal onNavigate={setVista}>
         {renderVista()}
-      </main>
+      </MenuPrincipal>
     </div>
   );
 }
@@ -127,7 +135,7 @@ export default function App() {
             <Route
               path="/dashboard"
               element={
-                <Private roles={['admin','operador_ingreso','operador_salida']}>
+                <Private roles={['admin','operador_ingreso','operador_salida','recepcion_muestras']}>
                   <Dashboard />
                 </Private>
               }
