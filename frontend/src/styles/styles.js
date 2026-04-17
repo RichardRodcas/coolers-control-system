@@ -138,6 +138,7 @@ export const styles = {
   counterObservado: { backgroundColor: '#fbc02d', color: '#212121' },
   counterLaboratorio: { backgroundColor: '#1976d2' },
   counterCampo: { backgroundColor: '#6a1b9a' },
+  counterRecepcion: { backgroundColor: '#b2dfdb', color: '#004d40' },
 
   // Tabla
 tableWrapper: {
@@ -294,6 +295,7 @@ tr: {
     textAlign: 'left',
     verticalAlign: 'middle',
   },
+  
 
 }
 

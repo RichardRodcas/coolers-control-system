@@ -51,7 +51,8 @@ function Inventario() {
     inoperativo: inventario.filter(c => c.estado?.toLowerCase() === 'inoperativo').length,
     observado: inventario.filter(c => c.estado?.toLowerCase() === 'observado').length,
     laboratorio: inventario.filter(c => c.disponibilidad?.toLowerCase() === 'laboratorio').length,
-    campo: inventario.filter(c => c.disponibilidad?.toLowerCase() === 'campo').length
+    campo: inventario.filter(c => c.disponibilidad?.toLowerCase() === 'campo').length,
+    recepcionMuestras: inventario.filter(c => c.disponibilidad?.toLowerCase() === 'muestras recibidas').length
   };
 
   const colorFila = (estado) => {
@@ -76,6 +77,7 @@ function Inventario() {
             <div style={{ ...styles.counterBox, ...styles.counterObservado }}>Observados: {contadores.observado}</div>
             <div style={{ ...styles.counterBox, ...styles.counterLaboratorio }}>Laboratorio: {contadores.laboratorio}</div>
             <div style={{ ...styles.counterBox, ...styles.counterCampo }}>Campo: {contadores.campo}</div>
+            <div style={{ ...styles.counterBox, ...styles.counterRecepcion }}>Recepción de Muestras: {contadores.recepcionMuestras}</div>
             <div style={{ ...styles.counterBox, ...styles.counterTotal }}>Total: {contadores.total}</div>
           </div>
         </div>
@@ -105,6 +107,7 @@ function Inventario() {
                 <option value="">Todas</option>
                 <option value="laboratorio">Laboratorio</option>
                 <option value="campo">Campo</option>
+                <option value="muestras recibidas">Recepción de Muestras</option>
               </select>
             </div>
             <button 

@@ -21,6 +21,7 @@ import RegistroClientes from './components/RegistroClientes';
 import BuscarPorOT  from './components/BuscarPorOT';
 import CambiarPassword from './components/CambiarPassword';
 import RecepcionMuestras from './components/RecepcionMuestras';
+import Indicadores from './components/Indicadores';
 
 // Wrapper para proteger vistas según login y rol
 function Private({ roles = [], children }) {
@@ -77,6 +78,7 @@ function Dashboard() {
         return user?.role === 'admin' || user?.role === 'operador_salida' ? <BuscarPorOT userRole={user?.role} /> : <div>Acceso denegado</div>;
       case 'cambiarPassword':
         return <CambiarPassword />;
+      case 'indicadores': return user?.role === 'admin' ? <Indicadores /> : <div>Acceso denegado</div>;
       default:
         return <Inventario />;
     }

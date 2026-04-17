@@ -148,3 +148,23 @@ export async function updatePassword(oldPassword, newPassword) {
   });
   return res.data;
 }
+
+
+// ======================= CLIENTES =======================
+export const getClientes = async () => {
+  const res = await api.get("/clientes");
+  return res.data?.data || [];
+};
+
+// ======================= SS (Órdenes de salida) =======================
+export const getSS = async (clienteRuc) => {
+  const params = clienteRuc ? { clienteRuc } : {};
+  const res = await api.get("/ss", { params });
+  return res.data?.data || [];
+};
+
+// ======================= COOLERS POR OT =======================
+export const getCoolersPorOT = async (ordenTrabajo) => {
+  const res = await api.get(`/coolers/por-ot/${ordenTrabajo}`);
+  return res.data?.data || [];
+};

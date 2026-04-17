@@ -791,6 +791,48 @@ app.get('/coolers/por-ot/:ordenTrabajo', requireAuth(['admin', 'operador_salida'
   }
 });
 
+// Listar SS con filtro opcional por cliente
+app.get('/ss', requireAuth(['admin','operador_salida']), async (req, res) => {
+  try {
+    const { clienteRuc } = req.query;
+    let result;
+
+    if (clienteRuc) {
+      result = await pool.query(`
+        SELECT m.id,
+               m.orden_trabajo,
+               m.fecha AS fecha_salida,
+               cl.razon_social AS cliente
+        FROM movimientos_cooler m
+        INNER JOIN clientes cl ON cl.ruc = m.hacia_cliente_ruc
+        WHERE LOWER(TRIM(m.tipo)) = 'salida'
+          AND m.hacia_cliente_ruc = $1
+        ORDER BY m.fecha DESC
+      `, [clienteRuc]);
+    } else {
+      result = await pool.query(`
+        SELECT m.id,
+               m.orden_trabajo,
+               m.fecha AS fecha_salida,
+               cl.razon_social AS cliente
+        FROM movimientos_cooler m
+        INNER JOIN clientes cl ON cl.ruc = m.hacia_cliente_ruc
+        WHERE LOWER(TRIM(m.tipo)) = 'salida'
+        ORDER BY m.fecha DESC
+      `);
+    }
+
+    res.json({ ok: true, data: result.rows });
+  } catch (err) {
+    console.error("Error en /ss:", err);
+    res.status(500).json({ ok: false, mensaje: 'Error listando SS' });
+  }
+});
+
+
+
+
+
 //======Actualizar Contraseña de Usuario======
 app.post('/usuarios/update-password', requireAuth(['usuario','admin']), async (req, res) => {
   const { oldPassword, newPassword } = req.body;

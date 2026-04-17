@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error en login");
 
-      setUser(data.user || { role: data.role, name: data.name });
+      setUser(data.user || { role: data.role?.toLowerCase(), name: data.name });
       setAccessToken(data.accessToken);
       setIsAuthed(true);
 
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (res.ok && data.accessToken) {
-        setUser(data.user || { role: data.role, name: data.name });
+        setUser(data.user || { role: data.role?.toLowerCase(), name: data.name });
         setAccessToken(data.accessToken);
         setIsAuthed(true);
 

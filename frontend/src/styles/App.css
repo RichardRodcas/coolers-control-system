@@ -223,3 +223,162 @@
     width: 100%;   /* 👈 botones ocupan todo el ancho */
   }
 }
+
+/* ===== Estilos BuscarPorOT ===== */
+.buscar-por-ot {
+  max-width: 900px;
+  margin: 2rem auto;
+  font-family: Arial, sans-serif;
+}
+
+.busqueda, .filtro-cliente {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.busqueda input {
+  flex: 1;
+  padding: 0.5rem;
+}
+
+.busqueda button {
+  padding: 0.5rem 1rem;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.busqueda button:hover {
+  background-color: #1565c0;
+}
+
+.ss-list {
+  list-style: none;
+  padding: 0;
+}
+.ss-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.ss-list li:hover {
+  background-color: #f5f5f5;
+}
+
+.coolers table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+.coolers th, .coolers td {
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  text-align: center;
+}
+.coolers th {
+  background-color: #1976d2;
+  color: white;
+}
+.coolers tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* ===== Estilos BuscarPorOT ===== */
+.coolers {
+  margin-bottom: 2rem;
+}
+.coolers h2 {
+  margin-bottom: 1rem;
+  color: #1976d2;
+}
+.coolers table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.coolers th, .coolers td {
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  text-align: center;
+}
+.coolers th {
+  background-color: #1976d2;
+  color: white;
+}
+.coolers tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+/* =====Estados===== */
+/* Disponibilidad */
+.disponibilidad.laboratorio {
+  background-color: #c8e6c9; /* verde claro */
+}
+.disponibilidad.campo {
+  background-color: #fff59d; /* amarillo claro */
+}
+
+/* Contenedor con scroll para SS */
+.ss-container {
+  max-height: 250px;   /* ajusta según tu diseño */
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  border-radius: 4px;
+  background-color: #fafafa;
+}
+.ss-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ss-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.ss-list li:hover {
+  background-color: #f5f5f5;
+}
+
+/* Laboratorio y Muestras recibidas → verde */
+.fila-disponibilidad.laboratorio,
+.fila-disponibilidad.muestrasrecibidas {
+  background-color: #c8e6c9; /* verde claro */
+}
+
+/* Campo → amarillo */
+.fila-disponibilidad.campo {
+  background-color: #fff59d; /* amarillo claro */
+}
+
+/* Opcional: hover gris suave */
+.fila-disponibilidad:hover {
+  filter: brightness(0.95);
+}
+
+
+/* Estilos para Indicadores */
+
+.indicador-card {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.indicador-card:nth-child(2) { background-color: #e8f5e9; } /* Operativos verde */
+.indicador-card:nth-child(3) { background-color: #ffebee; } /* Inoperativos rojo claro */
+.indicador-card:nth-child(4) { background-color: #fffde7; } /* Observados amarillo claro */
+.indicador-card:nth-child(5),
+.indicador-card:nth-child(6) { background-color: #c8e6c9; } /* Laboratorio y Muestras recibidas verde */
+.indicador-card:nth-child(7) { background-color: #fff59d; } /* Campo amarillo */
+

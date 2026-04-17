@@ -42,7 +42,7 @@ function MenuPrincipal({ onNavigate, children }) {
               style={{ ...styles.navBtn, ...styles.btnIngreso }}
               onClick={() => handleNavigate('ingreso')}
             >
-              🏢 Ingreso
+              🏢 Vigilancia
             </button>
           )}
 
@@ -51,7 +51,7 @@ function MenuPrincipal({ onNavigate, children }) {
               style={{ ...styles.navBtn, ...styles.btnSalida }}
               onClick={() => handleNavigate('salida')}
             >
-              🚚 Salida
+              🚚 Preparación de Materiales
             </button>
           )}
 
@@ -106,22 +106,30 @@ function MenuPrincipal({ onNavigate, children }) {
 
           {/* Bloque exclusivo de admin */}
           {user?.role === 'admin' && (
-            <>
-              <button
-                style={{ ...styles.navBtn, ...styles.btnRegistro }}
-                onClick={() => handleNavigate('registroUsuario')}
-              >
-                📝 Registro de Usuario
-              </button>
+  <>
+    <button
+      style={{ ...styles.navBtn, backgroundColor: "#009688", color: "#fff" }}
+      onClick={() => handleNavigate('indicadores')}
+    >
+      📊 Indicadores
+    </button>
 
-              <button
-                style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
-                onClick={() => handleNavigate('mantenimientoUsuario')}
-              >
-                👥 Mantenimiento Usuario
-              </button>
-            </>
-          )}
+    <button
+      style={{ ...styles.navBtn, ...styles.btnRegistro }}
+      onClick={() => handleNavigate('registroUsuario')}
+    >
+      📝 Registro de Usuario
+    </button>
+
+    <button
+      style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
+      onClick={() => handleNavigate('mantenimientoUsuario')}
+    >
+      👥 Mantenimiento Usuario
+    </button>
+  </>
+)}
+
 
           {isAuthed && (
             <button
