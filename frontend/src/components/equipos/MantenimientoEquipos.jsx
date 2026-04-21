@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 function MantenimientoEquipos() {
@@ -8,22 +8,22 @@ function MantenimientoEquipos() {
   const [observaciones, setObservaciones] = useState('');
   const [mantenimientos, setMantenimientos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState('');
 
-  // Cargar historial de mantenimientos de un equipo
   const fetchMantenimientos = async (codigoEquipo) => {
     if (!codigoEquipo) return;
     setLoading(true);
     try {
       const res = await axios.get(`/api/equipos/${codigoEquipo}/mantenimientos`);
-      setMantenimientos(res.data);
+      setMantenimientos(Array.isArray(res.data) ? res.data : res.data.rows || []);
     } catch (err) {
       console.error("Error cargando mantenimientos", err);
+      setMensaje("❌ Error al cargar historial");
     } finally {
       setLoading(false);
     }
   };
 
-  // Registrar mantenimiento
   const registrarMantenimiento = async () => {
     if (!codigo || !fecha || !tecnico) {
       alert("Completa código, fecha y técnico antes de registrar.");
@@ -36,14 +36,14 @@ function MantenimientoEquipos() {
         tecnico,
         observaciones
       });
-      alert("Mantenimiento registrado correctamente");
+      setMensaje("✅ Mantenimiento registrado correctamente");
       setFecha('');
       setTecnico('');
       setObservaciones('');
       fetchMantenimientos(codigo);
     } catch (err) {
       console.error("Error registrando mantenimiento", err);
-      alert("Error al registrar mantenimiento");
+      setMensaje("❌ Error al registrar mantenimiento");
     }
   };
 
@@ -62,24 +62,13 @@ function MantenimientoEquipos() {
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <input
-          type="date"
-          value={fecha}
-          onChange={e => setFecha(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Técnico"
-          value={tecnico}
-          onChange={e => setTecnico(e.target.value)}
-        />
-        <textarea
-          placeholder="Observaciones"
-          value={observaciones}
-          onChange={e => setObservaciones(e.target.value)}
-        />
+        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+        <input type="text" placeholder="Técnico" value={tecnico} onChange={e => setTecnico(e.target.value)} />
+        <textarea placeholder="Observaciones" value={observaciones} onChange={e => setObservaciones(e.target.value)} />
         <button onClick={registrarMantenimiento}>Registrar mantenimiento</button>
       </div>
+
+      {mensaje && <p>{mensaje}</p>}
 
       <h3>📜 Historial de mantenimientos</h3>
       {loading ? (
@@ -101,7 +90,10 @@ function MantenimientoEquipos() {
             ) : (
               mantenimientos.map((m, index) => (
                 <tr key={index}>
-                  <td>{new Date(m.fecha).toLocaleDateString()}</td>
+                  <td>{new Date(m.fecha).toLocaleString('es-PE', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}</td>
                   <td>{m.tecnico}</td>
                   <td>{m.observaciones}</td>
                 </tr>

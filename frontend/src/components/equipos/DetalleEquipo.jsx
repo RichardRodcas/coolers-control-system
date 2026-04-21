@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
-function DetalleEquipo({ codigo }) {
+function DetalleEquipo({ codigo, onVolver }) {
   const [equipo, setEquipo] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
@@ -36,6 +35,14 @@ function DetalleEquipo({ codigo }) {
   return (
     <div>
       <h2>🔎 Detalle del Equipo</h2>
+      
+      {/* Botón volver */}
+      {onVolver && (
+        <button onClick={onVolver} style={{ marginBottom: 20 }}>
+          ⬅️ Volver al inventario
+        </button>
+      )}
+
       <p><strong>Código:</strong> {equipo.codigo}</p>
       <p><strong>Nombre:</strong> {equipo.nombre}</p>
       <p><strong>Ubicación actual:</strong> {equipo.ubicacion}</p>
@@ -70,37 +77,35 @@ function DetalleEquipo({ codigo }) {
           </thead>
           <tbody>
             {Array.isArray(historial) && historial.length === 0 ? (
-  <tr><td colSpan="4" style={{ textAlign: 'center' }}>No hay movimientos registrados</td></tr>
-) : (
-  Array.isArray(historial) && historial.map((mov, index) => (
-    <tr key={index}>
-      <td>{new Date(mov.fecha).toLocaleString('es-PE', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })}</td>
-      <td style={{
-        color: mov.tipo === 'Salida' ? 'red' :
-               mov.tipo === 'Ingreso' ? 'green' :
-               mov.tipo === 'Mantenimiento' ? 'blue' : 'black'
-      }}>
-        {mov.tipo}
-      </td>
-      <td>{mov.detalle}</td>
-      <td>
-        {mov.foto_url ? (
-          <img src={mov.foto_url} alt="Foto movimiento"
-               style={{ width: 80, height: 60, objectFit: 'cover' }} />
-        ) : '—'}
-      </td>
-    </tr>
-  ))
-)}
-
+              <tr><td colSpan="4" style={{ textAlign: 'center' }}>No hay movimientos registrados</td></tr>
+            ) : (
+              Array.isArray(historial) && historial.map((mov, index) => (
+                <tr key={index}>
+                  <td>{new Date(mov.fecha).toLocaleString('es-PE', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}</td>
+                  <td style={{
+                    color: mov.tipo === 'Salida' ? 'red' :
+                           mov.tipo === 'Ingreso' ? 'green' :
+                           mov.tipo === 'Mantenimiento' ? 'blue' : 'black'
+                  }}>
+                    {mov.tipo}
+                  </td>
+                  <td>{mov.detalle}</td>
+                  <td>
+                    {mov.foto_url ? (
+                      <img src={mov.foto_url} alt="Foto movimiento"
+                           style={{ width: 80, height: 60, objectFit: 'cover' }} />
+                    ) : '—'}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}
     </div>
   );
 }
-
 export default DetalleEquipo;

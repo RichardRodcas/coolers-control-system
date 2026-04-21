@@ -58,6 +58,33 @@ const eliminarEquipo = async (req, res) => {
   }
 };
 
+// ------------------ Ingreso de equipos ------------------
+const ingresoEquipos = async (req, res) => {
+  const { codigo, nombre, ubicacion, estado, cliente } = req.body;
+
+  if (!codigo || !nombre || !ubicacion || !cliente) {
+    return res.status(400).json({ error: 'Datos incompletos para ingreso' });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO equipos (codigo, nombre, ubicacion, estado, cliente, creado_en) VALUES ($1,$2,$3,$4,$5,NOW())',
+      [codigo, nombre, ubicacion, estado, cliente]
+    );
+
+    await pool.query(
+      `INSERT INTO movimientos_equipos (codigo_equipo, tipo, detalle, fecha) 
+       VALUES ($1, $2, $3, NOW())`,
+      [codigo, 'Ingreso', `Ingreso inicial en ${ubicacion}`]
+    );
+
+    res.json({ message: 'Ingreso registrado correctamente' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al registrar ingreso' });
+  }
+};
+
 // ------------------ Salida de equipos ------------------
 const salidaEquipos = async (req, res) => {
   const { cliente, ss, equipos } = req.body;
@@ -223,6 +250,7 @@ export default {
   detalleEquipo,
   actualizarEquipo,
   eliminarEquipo,
+  ingresoEquipos,
   salidaEquipos,
   registrarMantenimiento,
   listarMantenimientos,

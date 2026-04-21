@@ -154,7 +154,7 @@ export default function App() {
               path="/dashboard/equipos"
               element={
                 <Private roles={['admin','operador_equipos']}>
-                  <DashboardEquipos />
+                  <DashboardEquipos vista="inventarioEquipos" />
                 </Private>
               }
             />

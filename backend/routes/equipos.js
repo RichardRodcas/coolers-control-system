@@ -12,6 +12,9 @@ router.get('/equipos/:codigo', equiposController.detalleEquipo);
 router.put('/equipos/:codigo', equiposController.actualizarEquipo);
 router.delete('/equipos/:codigo', equiposController.eliminarEquipo);
 
+// ------------------ Ingreso de equipos ------------------
+router.post('/equipos/ingreso', equiposController.ingresoEquipos);
+
 // ------------------ Salida de equipos ------------------
 router.post('/equipos/salida', equiposController.salidaEquipos);
 
@@ -31,8 +34,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
-// delegamos la lógica al controller
 router.post('/equipos/:codigo/foto', upload.single('foto'), equiposController.subirFoto);
 
 // ------------------ Inventario ------------------
