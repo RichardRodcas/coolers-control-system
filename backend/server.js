@@ -38,6 +38,13 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// Rutas equipos
+import equiposRoutes from './routes/equipos.js';
+app.use('/api', equiposRoutes);
+
+
+
 // ======================= Endpoints =======================
 
 // Ejemplo: obtener todos los coolers

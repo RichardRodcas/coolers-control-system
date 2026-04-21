@@ -127,6 +127,40 @@ function MenuPrincipal({ onNavigate, children }) {
     >
       👥 Mantenimiento Usuario
     </button>
+
+    {/* Botones para equipos */}
+    {['admin','operador_equipos'].includes(user?.role) && (
+  <div style={{ marginTop: 20 }}>
+    <h3 style={{ color: "#4caf50" }}>⚙️ Control de Equipos</h3>
+    <button
+      style={{ ...styles.navBtn, backgroundColor: "#4caf50", color: "#fff" }}
+      onClick={() => handleNavigate('ingresoEquipos')}
+    >
+      ➕ Ingreso de Equipos
+    </button>
+    <button
+      style={{ ...styles.navBtn, backgroundColor: "#ff5722", color: "#fff" }}
+      onClick={() => handleNavigate('salidaEquipos')}
+    >
+      🚚 Salida de Equipos
+    </button>
+    <button
+      style={{ ...styles.navBtn, backgroundColor: "#2196f3", color: "#fff" }}
+      onClick={() => handleNavigate('inventarioEquipos')}
+    >
+      📦 Inventario de Equipos
+    </button>
+    <button
+      style={{ ...styles.navBtn, backgroundColor: "#9c27b0", color: "#fff" }}
+      onClick={() => handleNavigate('mantenimientoEquipos')}
+    >
+      🛠️ Mantenimiento de Equipos
+    </button>
+  </div>
+)}
+
+
+
   </>
 )}
 

@@ -3,13 +3,13 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext.jsx';
 import "./styles/App.css";
-import { AppProvider } from './context/AppContext.js';   // ✅ Importamos el contexto global
+import { AppProvider } from './context/AppContext.js';   // ✅ Contexto global
 
 // Formularios de autenticación
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 
-// Componentes del dashboard
+// Componentes del dashboard principal
 import MenuPrincipal from './components/MenuPrincipal';
 import Inventario from './components/Inventario';
 import IngresoCooler from './components/IngresoCooler';
@@ -23,26 +23,21 @@ import CambiarPassword from './components/CambiarPassword';
 import RecepcionMuestras from './components/RecepcionMuestras';
 import Indicadores from './components/Indicadores';
 
+// Dashboard específico de equipos
+import DashboardEquipos from './components/equipos/DashboardEquipos.jsx';
+
 // Wrapper para proteger vistas según login y rol
 function Private({ roles = [], children }) {
   const { isAuthed, user, loading } = useAuth();
 
-  if (loading) {
-    return <div>Cargando sesión...</div>; // evita redirección prematura
-  }
-
-  if (!isAuthed) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (roles.length && !roles.includes(user?.role)) {
-    return <div>Acceso denegado</div>;
-  }
+  if (loading) return <div>Cargando sesión...</div>;
+  if (!isAuthed) return <Navigate to="/login" replace />;
+  if (roles.length && !roles.includes(user?.role)) return <div>Acceso denegado</div>;
 
   return children;
 }
 
-// Layout del dashboard
+// Layout del dashboard principal (Coolers, trazabilidad, etc.)
 function Dashboard() {
   console.log("[Dashboard] Renderizando Dashboard");
   const { user, logout } = useAuth();
@@ -52,33 +47,43 @@ function Dashboard() {
     switch (vista) {
       case 'ingreso':
         return user?.role === 'operador_ingreso' || user?.role === 'admin'
-          ? <IngresoCooler />
-          : <div>Acceso denegado</div>;
+          ? <IngresoCooler /> : <div>Acceso denegado</div>;
       case 'recepcionMuestras':
         return user?.role === 'recepcion_muestras' || user?.role === 'admin'
-          ? <RecepcionMuestras />
-          : <div>Acceso denegado</div>;
+          ? <RecepcionMuestras /> : <div>Acceso denegado</div>;
       case 'salida':
         return user?.role === 'operador_salida' || user?.role === 'admin'
-          ? <SalidaCooler />
-          : <div>Acceso denegado</div>;
+          ? <SalidaCooler /> : <div>Acceso denegado</div>;
       case 'inventario':
         return <Inventario />;
       case 'trazabilidad':
         return <Trazabilidad />;
       case 'mantenimiento':
-        return user?.role === 'admin' || user?.role === 'operador_salida' ? <MantenimientoCooler /> : <div>Acceso denegado</div>;
+        return user?.role === 'admin' || user?.role === 'operador_salida'
+          ? <MantenimientoCooler /> : <div>Acceso denegado</div>;
       case 'registroUsuario':
         return user?.role === 'admin' ? <RegisterForm /> : <div>Acceso denegado</div>;
       case 'registroClientes':
-        return user?.role === 'admin' || user?.role === 'operador_salida' ? <RegistroClientes /> : <div>Acceso denegado</div>;
+        return user?.role === 'admin' || user?.role === 'operador_salida'
+          ? <RegistroClientes /> : <div>Acceso denegado</div>;
       case 'mantenimientoUsuario':
         return user?.role === 'admin' ? <MantenimientoUsuario /> : <div>Acceso denegado</div>;
       case 'buscarPorOT':
-        return user?.role === 'admin' || user?.role === 'operador_salida' ? <BuscarPorOT userRole={user?.role} /> : <div>Acceso denegado</div>;
+        return user?.role === 'admin' || user?.role === 'operador_salida'
+          ? <BuscarPorOT userRole={user?.role} /> : <div>Acceso denegado</div>;
       case 'cambiarPassword':
         return <CambiarPassword />;
-      case 'indicadores': return user?.role === 'admin' ? <Indicadores /> : <div>Acceso denegado</div>;
+      case 'indicadores':
+        return user?.role === 'admin' ? <Indicadores /> : <div>Acceso denegado</div>;
+        case 'inventarioEquipos':
+  return <DashboardEquipos vista="inventarioEquipos" />;
+case 'salidaEquipos':
+  return <DashboardEquipos vista="salidaEquipos" />;
+case 'mantenimientoEquipos':
+  return <DashboardEquipos vista="mantenimientoEquipos" />;
+case 'ingresoEquipos':
+  return <DashboardEquipos vista="ingresoEquipos" />;
+
       default:
         return <Inventario />;
     }
@@ -123,22 +128,33 @@ function Dashboard() {
   );
 }
 
+// App principal con rutas
 export default function App() {
   return (
     <AuthProvider>
-      <AppProvider>   {/* ✅ Envolvemos todo con AppProvider */}
+      <AppProvider>
         <Router>
           <Routes>
             {/* Rutas públicas */}
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
 
-            {/* Ruta protegida del dashboard */}
+            {/* Ruta protegida del dashboard principal */}
             <Route
               path="/dashboard"
               element={
                 <Private roles={['admin','operador_ingreso','operador_salida','recepcion_muestras']}>
                   <Dashboard />
+                </Private>
+              }
+            />
+
+            {/* Ruta protegida del dashboard de equipos */}
+            <Route
+              path="/dashboard/equipos"
+              element={
+                <Private roles={['admin','operador_equipos']}>
+                  <DashboardEquipos />
                 </Private>
               }
             />
