@@ -6,11 +6,14 @@ import {
 } from 'recharts';
 
 function Indicadores() {
-  // Si inventario o usuario no existen aún, inicializamos con valores seguros
-  const { inventario = [], usuario = {} } = useContext(AppContext);
+  // Usamos la clave correcta del contexto
+  const { inventario = [], user = {} } = useContext(AppContext);
+
+  // 👀 Log para depuración: revisa en la consola qué llega
+  console.log("Indicadores recibe desde AppContext:", user);
 
   // Solo mostrar si el usuario es administrador
-  if (usuario?.rol !== 'admin') {
+  if ((user?.role || '').toLowerCase() !== 'admin') {
     return <div>Acceso denegado</div>;
   }
 
@@ -40,6 +43,26 @@ function Indicadores() {
 
   const COLORS = ['#2e7d32', '#d32f2f', '#fbc02d', '#1976d2', '#6a1b9a'];
 
+  // Fecha de hoy (sin horas)
+  const hoy = new Date().toISOString().split('T')[0];
+  // Contadores diarios
+const ingresosHoy = inventario.filter(c => 
+  c.tipoMovimiento?.toLowerCase() === 'ingreso' &&
+  c.fecha?.startsWith(hoy)
+).length;
+
+const salidasHoy = inventario.filter(c => 
+  c.tipoMovimiento?.toLowerCase() === 'salida' &&
+  c.fecha?.startsWith(hoy)
+).length;
+
+// Agrupación por cliente
+const clientesMap = {};
+inventario.forEach(c => {
+  const cliente = c.cliente?.razon_social || c.cliente?.nombre || 'Sin cliente';
+  clientesMap[cliente] = (clientesMap[cliente] || 0) + 1;
+});
+const dataClientes = Object.entries(clientesMap).map(([name, value]) => ({ name, value }));
   return (
     <div className="indicadores">
       <h2>📊 Indicadores del Sistema</h2>
@@ -86,6 +109,19 @@ function Indicadores() {
           <Legend />
         </PieChart>
       </ResponsiveContainer>
+      <div className="indicador-card">Ingresos hoy: {ingresosHoy}</div>
+<div className="indicador-card">Salidas hoy: {salidasHoy}</div>
+
+<h3>Coolers por Cliente</h3>
+<ResponsiveContainer width="100%" height={300}>
+  <BarChart data={dataClientes}>
+    <XAxis dataKey="name" />
+    <YAxis />
+    <Tooltip />
+    <Legend />
+    <Bar dataKey="value" fill="#6a1b9a" />
+  </BarChart>
+</ResponsiveContainer>
     </div>
   );
 }
