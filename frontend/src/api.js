@@ -168,3 +168,30 @@ export const getCoolersPorOT = async (ordenTrabajo) => {
   const res = await api.get(`/coolers/por-ot/${ordenTrabajo}`);
   return res.data?.data || [];
 };
+
+
+// ======================= EQUIPOS =======================
+export const getEquipos = async () => {
+  const res = await api.get("/api/equipos");
+  return res.data?.data || [];
+};
+
+export const createEquipo = async (equipo) => {
+  const res = await api.post("/api/equipos/ingreso", equipo);
+  return res.data;
+};
+
+export const updateEquipo = async (codigo, data) => {
+  const res = await api.put(`/api/equipos/${codigo}`, data);
+  return res.data;
+};
+
+export const deleteEquipo = async (codigo) => {
+  const res = await api.delete(`/api/equipos/${codigo}`);
+  return res.data;
+};
+
+export const getDetalleEquipo = async (codigo) => {
+  const res = await api.get(`/api/equipos/${codigo}`);
+  return res.data?.data || null;
+};

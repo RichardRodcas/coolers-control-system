@@ -1,12 +1,12 @@
 // src/components/MantenimientoEquipos.jsx
 import React, { useState, useContext } from 'react';
-import { createEquipo, updateEquipo, deleteEquipo, getDetalleEquipo } from '../api.js';
-import { styles } from '../styles/styles.js';
+import { createEquipo, updateEquipo, deleteEquipo, getDetalleEquipo } from '../../api.js';
+import { styles } from '../../styles/styles.js';
 import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
-import "../styles/App.css";
-import { CardContainer } from "./CardContainer.jsx";
-import { Card } from "./Card.jsx";
-import { AppContext } from '../context/AppContext.js';
+import "../../styles/App.css";
+import { CardContainer } from "../CardContainer.jsx";
+import { Card } from "../Card.jsx";
+import { AppContext } from '../../context/AppContext.js';
 
 function MantenimientoEquipos() {
   const { mantenimiento, setMantenimiento } = useContext(AppContext);
@@ -19,24 +19,25 @@ function MantenimientoEquipos() {
 
   // Crear equipo
   const crearEquipo = async () => {
-    try {
-      if (!codigo || !form.nombre) {
-        setMantenimiento(prev => ({ ...prev, mensaje: '❌ Debe ingresar código y nombre' }));
-        return;
-      }
-      const payload = { codigo, ...form };
-      await createEquipo(payload);
-      setMantenimiento(prev => ({
-        ...prev,
-        mensaje: `✅ Equipo ${codigo} creado`,
-        codigo: '', equipoActual: null
-      }));
-      setForm({ nombre:'', ubicacion:'', estado:'operativo', cliente:'', ss:'', nroSerie:'', marca:'', fotoUrl:'' });
-    } catch (err) {
-      setMantenimiento(prev => ({ ...prev, mensaje: '❌ Error al crear equipo' }));
-      console.error(err);
+  try {
+    if (!codigo || !form.nombre || !form.nroSerie || !form.marca) {
+      setMantenimiento(prev => ({ ...prev, mensaje: '❌ Debe ingresar código, nombre, nro de serie y marca' }));
+      return;
     }
-  };
+    const payload = { codigo, nombre: form.nombre, nro_serie: form.nroSerie, marca: form.marca };
+    await createEquipo(payload);
+    setMantenimiento(prev => ({
+      ...prev,
+      mensaje: `✅ Equipo ${codigo} creado`,
+      codigo: '', equipoActual: null
+    }));
+    setForm({ nombre:'', nroSerie:'', marca:'' });
+  } catch (err) {
+    setMantenimiento(prev => ({ ...prev, mensaje: '❌ Error al crear equipo' }));
+    console.error(err);
+  }
+};
+
 
   // Buscar equipo
   const buscarEquipo = async () => {
@@ -112,24 +113,36 @@ function MantenimientoEquipos() {
 
         {/* Contenido según pestaña */}
         <div style={{marginTop:16}}>
-          {tab==='crear' && (
-            <div>
-              <input style={styles.input} placeholder="Código" value={codigo} onChange={e=>setMantenimiento(prev=>({...prev,codigo:e.target.value}))}/>
-              <input style={styles.input} placeholder="Nombre" value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})}/>
-              <input style={styles.input} placeholder="Ubicación" value={form.ubicacion} onChange={e=>setForm({...form,ubicacion:e.target.value})}/>
-              <select style={styles.input} value={form.estado} onChange={e=>setForm({...form,estado:e.target.value})}>
-                <option value="operativo">Operativo</option>
-                <option value="inoperativo">Inoperativo</option>
-                <option value="observado">Observado</option>
-              </select>
-              <input style={styles.input} placeholder="Cliente" value={form.cliente} onChange={e=>setForm({...form,cliente:e.target.value})}/>
-              <input style={styles.input} placeholder="Solicitud de servicio" value={form.ss} onChange={e=>setForm({...form,ss:e.target.value})}/>
-              <input style={styles.input} placeholder="Nro de serie" value={form.nroSerie} onChange={e=>setForm({...form,nroSerie:e.target.value})}/>
-              <input style={styles.input} placeholder="Marca" value={form.marca} onChange={e=>setForm({...form,marca:e.target.value})}/>
-              <input style={styles.input} placeholder="Foto URL" value={form.fotoUrl} onChange={e=>setForm({...form,fotoUrl:e.target.value})}/>
-              <button style={styles.primaryBtn} onClick={crearEquipo}>Crear</button>
-            </div>
-          )}
+      {tab==='crear' && (
+  <div>
+    <input 
+      style={styles.input} 
+      placeholder="Código" 
+      value={codigo} 
+      onChange={e=>setMantenimiento(prev=>({...prev,codigo:e.target.value}))}
+    />
+    <input 
+      style={styles.input} 
+      placeholder="Nombre" 
+      value={form.nombre} 
+      onChange={e=>setForm({...form,nombre:e.target.value})}
+    />
+    <input 
+      style={styles.input} 
+      placeholder="Nro de serie" 
+      value={form.nroSerie} 
+      onChange={e=>setForm({...form,nroSerie:e.target.value})}
+    />
+    <input 
+      style={styles.input} 
+      placeholder="Marca" 
+      value={form.marca} 
+      onChange={e=>setForm({...form,marca:e.target.value})}
+    />
+    <button style={styles.primaryBtn} onClick={crearEquipo}>Crear</button>
+  </div>
+)}
+
 
           {tab==='modificar' && (
             <div>
