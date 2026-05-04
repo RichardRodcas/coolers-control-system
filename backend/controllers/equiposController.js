@@ -4,13 +4,20 @@ import { pool } from '../db.js'; // conexión centralizada
 const crearEquipo = async (req, res) => {
   const { codigo, nombre, ubicacion, estado, cliente } = req.body;
   try {
+    const ubicacionFinal = ubicacion || 'Laboratorio';
+    const estadoFinal = estado || 'Operativo';
+
     await pool.query(
-      'INSERT INTO equipos (codigo, nombre, ubicacion, estado, cliente) VALUES ($1,$2,$3,$4,$5)',
-      [codigo, nombre, ubicacion, estado, cliente]
+      `INSERT INTO equipos (codigo, nombre, ubicacion, estado, cliente, creado_en, actualizado_en) 
+       VALUES ($1,$2,$3,$4,$5,NOW(),NOW())`,
+      [codigo, nombre, ubicacionFinal, estadoFinal, cliente]
     );
     res.json({ message: 'Equipo creado correctamente' });
   } catch (err) {
     console.error(err);
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'El código de equipo ya existe' });
+    }
     res.status(500).json({ error: 'Error al crear equipo' });
   }
 };
@@ -28,6 +35,9 @@ const detalleEquipo = async (req, res) => {
   const { codigo } = req.params;
   try {
     const result = await pool.query('SELECT * FROM equipos WHERE codigo=$1', [codigo]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener detalle' });
@@ -38,10 +48,20 @@ const actualizarEquipo = async (req, res) => {
   const { codigo } = req.params;
   const { nombre, ubicacion, estado, cliente } = req.body;
   try {
-    await pool.query(
-      'UPDATE equipos SET nombre=$1, ubicacion=$2, estado=$3, cliente=$4, actualizado_en=NOW() WHERE codigo=$5',
-      [nombre, ubicacion, estado, cliente, codigo]
+    const ubicacionFinal = ubicacion || 'Laboratorio';
+    const estadoFinal = estado || 'Operativo';
+
+    const result = await pool.query(
+      `UPDATE equipos 
+       SET nombre=$1, ubicacion=$2, estado=$3, cliente=$4, actualizado_en=NOW() 
+       WHERE codigo=$5`,
+      [nombre, ubicacionFinal, estadoFinal, cliente, codigo]
     );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado para actualizar' });
+    }
+
     res.json({ message: 'Equipo actualizado correctamente' });
   } catch (err) {
     res.status(500).json({ error: 'Error al actualizar equipo' });
@@ -51,7 +71,10 @@ const actualizarEquipo = async (req, res) => {
 const eliminarEquipo = async (req, res) => {
   const { codigo } = req.params;
   try {
-    await pool.query('DELETE FROM equipos WHERE codigo=$1', [codigo]);
+    const result = await pool.query('DELETE FROM equipos WHERE codigo=$1', [codigo]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado para eliminar' });
+    }
     res.json({ message: 'Equipo eliminado correctamente' });
   } catch (err) {
     res.status(500).json({ error: 'Error al eliminar equipo' });
@@ -62,25 +85,32 @@ const eliminarEquipo = async (req, res) => {
 const ingresoEquipos = async (req, res) => {
   const { codigo, nombre, ubicacion, estado, cliente } = req.body;
 
-  if (!codigo || !nombre || !ubicacion || !cliente) {
-    return res.status(400).json({ error: 'Datos incompletos para ingreso' });
-  }
+  const ubicacionFinal = ubicacion || 'Laboratorio';
+  const estadoFinal = estado || 'Operativo';
 
   try {
+    await pool.query('BEGIN');
+
     await pool.query(
-      'INSERT INTO equipos (codigo, nombre, ubicacion, estado, cliente, creado_en) VALUES ($1,$2,$3,$4,$5,NOW())',
-      [codigo, nombre, ubicacion, estado, cliente]
+      `INSERT INTO equipos (codigo, nombre, ubicacion, estado, cliente, creado_en, actualizado_en) 
+       VALUES ($1,$2,$3,$4,$5,NOW(),NOW())`,
+      [codigo, nombre, ubicacionFinal, estadoFinal, cliente]
     );
 
     await pool.query(
       `INSERT INTO movimientos_equipos (codigo_equipo, tipo, detalle, fecha) 
        VALUES ($1, $2, $3, NOW())`,
-      [codigo, 'Ingreso', `Ingreso inicial en ${ubicacion}`]
+      [codigo, 'Ingreso', `Ingreso inicial en ${ubicacionFinal}`]
     );
 
+    await pool.query('COMMIT');
     res.json({ message: 'Ingreso registrado correctamente' });
   } catch (err) {
+    await pool.query('ROLLBACK');
     console.error(err);
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'El código de equipo ya existe' });
+    }
     res.status(500).json({ error: 'Error al registrar ingreso' });
   }
 };
@@ -94,13 +124,19 @@ const salidaEquipos = async (req, res) => {
   }
 
   try {
+    await pool.query('BEGIN');
+
     for (const eq of equipos) {
-      await pool.query(
+      const result = await pool.query(
         `UPDATE equipos 
          SET ubicacion=$1, cliente=$2, ss=$3, estado='En uso', actualizado_en=NOW() 
          WHERE codigo=$4`,
         ['En cliente', cliente, ss, eq.codigo]
       );
+
+      if (result.rowCount === 0) {
+        throw new Error(`Equipo ${eq.codigo} no encontrado`);
+      }
 
       await pool.query(
         `INSERT INTO movimientos_equipos (codigo_equipo, tipo, detalle, foto_url, fecha) 
@@ -109,10 +145,12 @@ const salidaEquipos = async (req, res) => {
       );
     }
 
+    await pool.query('COMMIT');
     res.json({ message: 'Salida registrada correctamente' });
   } catch (err) {
+    await pool.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: 'Error al registrar salida' });
+    res.status(500).json({ error: 'Error al registrar salida', detalle: err.message });
   }
 };
 
@@ -126,16 +164,22 @@ const registrarMantenimiento = async (req, res) => {
   }
 
   try {
+    await pool.query('BEGIN');
+
     await pool.query(
       `INSERT INTO mantenimientos_equipos (codigo_equipo, fecha, tecnico, observaciones) 
        VALUES ($1, $2, $3, $4)`,
       [codigo, fecha, tecnico, observaciones]
     );
 
-    await pool.query(
+    const result = await pool.query(
       `UPDATE equipos SET ultimo_mantenimiento=$1, actualizado_en=NOW() WHERE codigo=$2`,
       [fecha, codigo]
     );
+
+    if (result.rowCount === 0) {
+      throw new Error(`Equipo ${codigo} no encontrado`);
+    }
 
     await pool.query(
       `INSERT INTO movimientos_equipos (codigo_equipo, tipo, detalle, fecha) 
@@ -143,10 +187,12 @@ const registrarMantenimiento = async (req, res) => {
       [codigo, 'Mantenimiento', `Mantenimiento realizado por ${tecnico}`]
     );
 
+    await pool.query('COMMIT');
     res.json({ message: 'Mantenimiento registrado correctamente' });
   } catch (err) {
+    await pool.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: 'Error al registrar mantenimiento' });
+    res.status(500).json({ error: 'Error al registrar mantenimiento', detalle: err.message });
   }
 };
 
@@ -168,10 +214,14 @@ const subirFoto = async (req, res) => {
   try {
     const fotoUrl = `/uploads/equipos/${req.file.filename}`;
 
-    await pool.query(
+    const result = await pool.query(
       'UPDATE equipos SET foto_url=$1, actualizado_en=NOW() WHERE codigo=$2',
       [fotoUrl, req.params.codigo]
     );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado para subir foto' });
+    }
 
     await pool.query(
       `UPDATE movimientos_equipos
@@ -219,6 +269,8 @@ const inventarioEquipos = async (req, res) => {
       ) m ON TRUE
       ORDER BY e.codigo;
     `);
+
+    // Si no hay equipos, devolvemos array vacío (frontend ya lo maneja)
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -236,6 +288,11 @@ const movimientosEquipo = async (req, res) => {
        ORDER BY fecha DESC`,
       [codigo]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron movimientos para este equipo' });
+    }
+
     res.json(result.rows);
   } catch (err) {
     console.error(err);

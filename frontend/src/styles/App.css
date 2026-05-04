@@ -382,3 +382,56 @@
 .indicador-card:nth-child(6) { background-color: #c8e6c9; } /* Laboratorio y Muestras recibidas verde */
 .indicador-card:nth-child(7) { background-color: #fff59d; } /* Campo amarillo */
 
+
+/* Estilos para contraseña */
+.password-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0 8px;
+  background: #fff;
+}
+
+.password-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 8px;
+}
+
+.toggle-eye {
+  cursor: pointer;
+  color: #555;
+  margin-left: 8px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0 8px;
+  background: #fff;
+}
+
+.text-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 8px;
+}
+
+.toggle-eye {
+  cursor: pointer;
+  color: #555;
+  margin-left: 8px;
+}
+
+

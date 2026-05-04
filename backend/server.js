@@ -149,7 +149,7 @@ app.post('/coolers/ingreso', requireAuth(['operador_ingreso','admin']), async (r
     await client.query('BEGIN');
 
     for (const rawCodigo of codigos) {
-      const codigo = String(rawCodigo || '').trim();
+      const codigo = String(rawCodigo || '').trim().toUpperCase();
 
       // 1. Actualizar estado actual del cooler
       const updateResult = await client.query(
@@ -241,7 +241,7 @@ app.post('/coolers/recepcion', requireAuth(['recepcion_muestras','admin']), asyn
     await client.query('BEGIN');
 
     for (const rawCodigo of codigos) {
-      const codigo = String(rawCodigo || '').trim();
+      const codigo = String(rawCodigo || '').trim().toUpperCase();
 
       // 1. Actualizar estado actual del cooler
       const updateResult = await client.query(
@@ -310,7 +310,7 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
     return res.status(400).json({ ok: false, mensaje: 'Debes enviar al menos un código' });
   }
   if (!clienteRuc || !ordenTrabajo) {
-    return res.status(400).json({ ok: false, mensaje: 'RUC y OT obligatorios' });
+    return res.status(400).json({ ok: false, mensaje: 'RUC y SS obligatorios' });
   }
 
   const client = await pool.connect();
@@ -320,7 +320,7 @@ app.post('/coolers/salida', requireAuth(['operador_salida','admin']), async (req
     await client.query('BEGIN');
 
     for (const rawCodigo of codigos) {
-      const codigo = String(rawCodigo || '').trim();
+      const codigo = String(rawCodigo || '').trim().toUpperCase();
 
       // ✅ Permitir salida desde Laboratorio o Muestras Recibidas
       const updateResult = await client.query(
@@ -427,7 +427,7 @@ app.get('/coolers/fuera', requireAuth(['admin','operador_ingreso','operador_sali
   }
 });
 
-// Trazabilidad (movimientos + mantenimientos)
+// Trazabilidad (movimientos + mantenimientos + estado actual)
 app.get(
   '/coolers/:codigo/trazabilidad',
   requireAuth(['admin', 'operador_ingreso', 'operador_salida']),
@@ -438,7 +438,7 @@ app.get(
       // Historial: movimientos + mantenimientos
       const result = await pool.query(
         `SELECT * FROM (
-           -- Movimientos (incluye cliente, disponibilidad y OT)
+           -- Movimientos
            SELECT m.fecha,
                   'Movimiento' AS tipo,
                   cl.razon_social AS cliente,
@@ -453,7 +453,7 @@ app.get(
 
            UNION ALL
 
-           -- Mantenimientos (incluye OT si existe)
+           -- Mantenimientos
            SELECT mt.fecha,
                   'Mantenimiento' AS tipo,
                   NULL AS cliente,
@@ -469,9 +469,9 @@ app.get(
         [codigoNorm]
       );
 
-      // Detalle actual del cooler
+      // Estado actual desde la vista
       const detalle = await pool.query(
-        'SELECT * FROM coolers WHERE UPPER(TRIM(codigo))=$1',
+        'SELECT * FROM vw_inventario_coolers WHERE UPPER(TRIM(codigo))=$1',
         [codigoNorm]
       );
 
@@ -493,6 +493,7 @@ app.get(
   }
 );
 
+
 // Validación de códigos
 app.post('/api/validate-code', requireAuth(['admin','operador_ingreso','operador_salida']), async (req, res) => {
   const { code } = req.body;
@@ -513,62 +514,68 @@ app.post('/api/validate-code', requireAuth(['admin','operador_ingreso','operador
 });
 
 // Detalle del cooler
-app.get('/coolers/:codigo/detalle', requireAuth(['admin','operador_ingreso','operador_salida']), async (req, res) => {
-  try {
-    const { codigo } = req.params;
-    const result = await pool.query(
-      `SELECT c.*,
-         -- Último movimiento
-         (SELECT m.fecha
-          FROM movimientos_cooler m
-          WHERE m.cooler_codigo = c.codigo
-          ORDER BY m.fecha DESC
-          LIMIT 1) AS ultimo_movimiento,
+app.get(
+  '/coolers/:codigo/detalle',
+  requireAuth(['admin','operador_ingreso','operador_salida']),
+  async (req, res) => {
+    try {
+      const codigoNorm = String(req.params.codigo || '').trim().toUpperCase();
 
-         -- Cliente del último movimiento
-         (SELECT cl.razon_social
-          FROM movimientos_cooler m
-          LEFT JOIN clientes cl ON m.hacia_cliente_ruc = cl.ruc
-          WHERE m.cooler_codigo = c.codigo
-          ORDER BY m.fecha DESC
-          LIMIT 1) AS cliente,
-
-         -- Última OT registrada (movimiento o mantenimiento)
-         COALESCE(
-           (SELECT m.orden_trabajo
+      const result = await pool.query(
+        `SELECT v.*,
+           -- Último movimiento
+           (SELECT m.fecha
             FROM movimientos_cooler m
-            WHERE m.cooler_codigo = c.codigo
+            WHERE m.cooler_codigo = v.codigo
             ORDER BY m.fecha DESC
-            LIMIT 1),
-           (SELECT mt.orden_trabajo
+            LIMIT 1) AS ultimo_movimiento,
+
+           -- Cliente del último movimiento
+           (SELECT cl.razon_social
+            FROM movimientos_cooler m
+            LEFT JOIN clientes cl ON m.hacia_cliente_ruc = cl.ruc
+            WHERE m.cooler_codigo = v.codigo
+            ORDER BY m.fecha DESC
+            LIMIT 1) AS cliente,
+
+           -- Última OT registrada (movimiento o mantenimiento)
+           COALESCE(
+             (SELECT m.orden_trabajo
+              FROM movimientos_cooler m
+              WHERE m.cooler_codigo = v.codigo
+              ORDER BY m.fecha DESC
+              LIMIT 1),
+             (SELECT mt.orden_trabajo
+              FROM mantenimiento_cooler mt
+              WHERE mt.cooler_codigo = v.codigo
+              ORDER BY mt.fecha DESC
+              LIMIT 1)
+           ) AS ultima_ot,
+
+           -- Último mantenimiento
+           (SELECT mt.fecha
             FROM mantenimiento_cooler mt
-            WHERE mt.cooler_codigo = c.codigo
+            WHERE mt.cooler_codigo = v.codigo
             ORDER BY mt.fecha DESC
-            LIMIT 1)
-         ) AS ultima_ot,
+            LIMIT 1) AS ultimo_mantenimiento
 
-         -- Último mantenimiento
-         (SELECT mt.fecha
-          FROM mantenimiento_cooler mt
-          WHERE mt.cooler_codigo = c.codigo
-          ORDER BY mt.fecha DESC
-          LIMIT 1) AS ultimo_mantenimiento
+         FROM vw_inventario_coolers v
+         WHERE v.codigo = $1`,
+        [codigoNorm]
+      );
 
-       FROM coolers c
-       WHERE c.codigo = $1`,
-      [String(codigo || '').trim()]
-    );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ ok: false, mensaje: 'No encontrado' });
+      }
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ ok: false, mensaje: 'No encontrado' });
+      res.json({ ok: true, data: result.rows[0] });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, mensaje: 'Error cargando detalle' });
     }
-
-    res.json({ ok: true, data: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ ok: false, mensaje: 'Error cargando detalle' });
   }
-});
+);
+
 
 
 // ======================= ENDPOINTS USUARIOS =======================
@@ -788,7 +795,7 @@ app.get('/coolers/por-ot/:ordenTrabajo', requireAuth(['admin', 'operador_salida'
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ ok: false, mensaje: 'No se encontraron coolers para esa OT' });
+      return res.status(404).json({ ok: false, mensaje: 'No se encontraron coolers para esa SS' });
     }
 
     res.json({ ok: true, data: result.rows });

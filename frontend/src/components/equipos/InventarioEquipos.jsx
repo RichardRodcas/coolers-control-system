@@ -9,7 +9,8 @@ function InventarioEquipos({ onVerDetalle }) {
     const fetchEquipos = async () => {
       try {
         const res = await axios.get('/api/equipos/inventario'); 
-        setEquipos(Array.isArray(res.data) ? res.data : res.data.rows || []);
+        console.log("Datos recibidos del backend:", res.data); // <-- depuración
+        setEquipos(res.data); // el backend ya devuelve un array
       } catch (err) {
         console.error("Error cargando inventario de equipos", err);
       } finally {
@@ -40,42 +41,41 @@ function InventarioEquipos({ onVerDetalle }) {
           </tr>
         </thead>
         <tbody>
-  {Array.isArray(equipos) && equipos.length === 0 ? (
-    <tr>
-      <td colSpan="8" style={{ textAlign: 'center' }}>
-        No hay equipos registrados
-      </td>
-    </tr>
-  ) : (
-    Array.isArray(equipos) && equipos.map(eq => (
-      <tr
-        key={eq.codigo}
-        style={{ cursor: 'pointer' }}
-        onClick={() => onVerDetalle(eq.codigo)}
-      >
-        <td>{eq.codigo}</td>
-        <td>{eq.nombre}</td>
-        <td>{eq.ubicacion}</td>
-        <td style={{ color: eq.estado === 'En uso' ? 'red' : 'green' }}>
-          {eq.estado}
-        </td>
-        <td>{eq.cliente || '—'}</td>
-        <td>{eq.ultimo_movimiento || '—'}</td>
-        <td>{eq.fecha_movimiento ? new Date(eq.fecha_movimiento).toLocaleString() : '—'}</td>
-        <td>
-          {eq.foto_movimiento || eq.ultima_foto ? (
-            <img 
-              src={eq.foto_movimiento || eq.ultima_foto} 
-              alt="Foto equipo" 
-              style={{ width: 80, height: 60, objectFit: 'cover' }} 
-            />
-          ) : '—'}
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
-
+          {equipos.length === 0 ? (
+            <tr>
+              <td colSpan="8" style={{ textAlign: 'center' }}>
+                No hay equipos registrados
+              </td>
+            </tr>
+          ) : (
+            equipos.map(eq => (
+              <tr
+                key={eq.codigo}
+                style={{ cursor: 'pointer' }}
+                onClick={() => onVerDetalle(eq.codigo)}
+              >
+                <td>{eq.codigo}</td>
+                <td>{eq.nombre}</td>
+                <td>{eq.ubicacion}</td>
+                <td style={{ color: eq.estado === 'En uso' ? 'red' : 'green' }}>
+                  {eq.estado}
+                </td>
+                <td>{eq.cliente || '—'}</td>
+                <td>{eq.ultimo_movimiento || '—'}</td>
+                <td>{eq.fecha_movimiento ? new Date(eq.fecha_movimiento).toLocaleString() : '—'}</td>
+                <td>
+                  {eq.foto_movimiento || eq.ultima_foto ? (
+                    <img 
+                      src={eq.foto_movimiento || eq.ultima_foto} 
+                      alt="Foto equipo" 
+                      style={{ width: 80, height: 60, objectFit: 'cover' }} 
+                    />
+                  ) : '—'}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
       </table>
     </div>
   );
