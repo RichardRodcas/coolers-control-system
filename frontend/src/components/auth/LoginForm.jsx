@@ -70,6 +70,9 @@ export default function LoginForm() {
 
 
         <button type="submit" style={styles.primaryBtn}>Entrar</button>
+        <p>
+        <a href="/forgot">¿Olvidaste tu contraseña?</a>
+        </p>
       </form>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}

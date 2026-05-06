@@ -22,6 +22,8 @@ import BuscarPorOT  from './components/BuscarPorOT';
 import CambiarPassword from './components/CambiarPassword';
 import RecepcionMuestras from './components/RecepcionMuestras';
 import Indicadores from './components/Indicadores';
+import ForgotPassword from './components/auth/ForgotPassword.jsx';
+import ResetRequestsAdmin from './components/ResetRequestsAdmin.jsx'; // ✅ corregido
 
 // Dashboard específico de equipos
 import DashboardEquipos from './components/equipos/DashboardEquipos.jsx';
@@ -75,15 +77,16 @@ function Dashboard() {
         return <CambiarPassword />;
       case 'indicadores':
         return user?.role === 'admin' ? <Indicadores /> : <div>Acceso denegado</div>;
-        case 'inventarioEquipos':
-  return <DashboardEquipos vista="inventarioEquipos" />;
-case 'salidaEquipos':
-  return <DashboardEquipos vista="salidaEquipos" />;
-case 'mantenimientoEquipos':
-  return <DashboardEquipos vista="mantenimientoEquipos" />;
-case 'ingresoEquipos':
-  return <DashboardEquipos vista="ingresoEquipos" />;
-
+      case 'inventarioEquipos':
+        return <DashboardEquipos vista="inventarioEquipos" />;
+      case 'salidaEquipos':
+        return <DashboardEquipos vista="salidaEquipos" />;
+      case 'mantenimientoEquipos':
+        return <DashboardEquipos vista="mantenimientoEquipos" />;
+      case 'ingresoEquipos':
+        return <DashboardEquipos vista="ingresoEquipos" />;
+      case 'resetRequestsAdmin': // ✅ nuevo caso
+        return user?.role === 'admin' ? <ResetRequestsAdmin /> : <div>Acceso denegado</div>;
       default:
         return <Inventario />;
     }
@@ -138,6 +141,7 @@ export default function App() {
             {/* Rutas públicas */}
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
+            <Route path="/forgot" element={<ForgotPassword />} />
 
             {/* Ruta protegida del dashboard principal */}
             <Route
