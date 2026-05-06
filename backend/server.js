@@ -880,23 +880,35 @@ app.post('/usuarios/update-password', requireAuth(['usuario','admin']), async (r
   }
 });
 //olvidar contraseña
-// Usuario pide reset
+// Reset por solicitud de usuario
 app.post('/auth/forgot', async (req, res) => {
-  const { email } = req.body;
-  await db.query('INSERT INTO reset_requests(email) VALUES($1)', [email]);
-  res.json({ mensaje: 'Solicitud registrada, un administrador revisará tu caso.' });
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ mensaje: 'Correo requerido' });
+    }
+
+    // Guardar solicitud en la tabla reset_requests
+    await pool.query('INSERT INTO reset_requests(email) VALUES($1)', [email]);
+
+    res.json({ mensaje: 'Solicitud registrada, un administrador la atenderá.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ mensaje: 'Error registrando solicitud' });
+  }
 });
+
 // Admin asigna nueva contraseña
 app.post('/admin/reset-password', async (req, res) => {
   const { email, nuevaPassword } = req.body;
 
-  const user = await db.query('SELECT * FROM usuarios WHERE email=$1', [email]);
+  const user = await pool.query('SELECT * FROM usuarios WHERE email=$1', [email]);
   if (!user) return res.status(400).json({ mensaje: 'Usuario no encontrado' });
 
   const hash = await bcrypt.hash(nuevaPassword, 10);
-  await db.query('UPDATE usuarios SET password=$1 WHERE email=$2', [hash, email]);
+  await pool.query('UPDATE usuarios SET password=$1 WHERE email=$2', [hash, email]);
 
-  await db.query('UPDATE reset_requests SET processed=true WHERE email=$1', [email]);
+  await pool.query('UPDATE reset_requests SET processed=true WHERE email=$1', [email]);
 
   res.json({ mensaje: 'Contraseña reseteada por admin' });
 });
@@ -905,12 +917,12 @@ app.post('/admin/reset-password', async (req, res) => {
 // Listar solicitudes de reset (solo admins)
 app.get('/admin/reset-requests', async (req, res) => {
   try {
-    const result = await db.query(
+    const result = await pool.query(
       'SELECT id, email, processed FROM reset_requests ORDER BY requested_at DESC'
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error("Error en resert-request", err);
     res.status(500).json({ mensaje: 'Error al obtener solicitudes' });
   }
 });

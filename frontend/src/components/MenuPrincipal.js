@@ -3,7 +3,7 @@ import { styles } from '../styles/styles.js';
 import { useAuth } from '../AuthContext.jsx';
 import "../styles/App.css";
 
-function MenuPrincipal({ onNavigate, children }) {
+function MenuPrincipal({ onNavigate, children, vista }) {
   const { isAuthed, user } = useAuth();
 
   console.log("[MenuPrincipal] isAuthed:", isAuthed, "user:", user);
@@ -126,6 +126,13 @@ function MenuPrincipal({ onNavigate, children }) {
       onClick={() => handleNavigate('mantenimientoUsuario')}
     >
       👥 Mantenimiento Usuario
+    </button>
+    
+    <button
+      style={{ ...styles.navBtn, backgroundColor: "#e91e63", color: "#fff", marginTop: 20 }}
+      onClick={() => handleNavigate('resetRequestsAdmin')}
+    >
+      ❓ Reset de Contraseñas
     </button>
 
     {/* Botones para equipos */}

@@ -4,6 +4,8 @@ import { updatePassword } from "../api.js";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function CambiarPassword() {
+  console.log("Render CambiarPassword"); // se ejecuta en cada render
+
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showOld, setShowOld] = useState(false);
@@ -18,6 +20,7 @@ function CambiarPassword() {
     try {
       const res = await updatePassword(oldPassword, newPassword);
       setMessage(res.message);
+      // limpiar campos solo al enviar
       setOldPassword("");
       setNewPassword("");
     } catch (err) {
@@ -25,7 +28,7 @@ function CambiarPassword() {
     }
   };
 
-  // 🔹 Componente reutilizable para inputs con ojito
+  // Componente reutilizable para inputs con ojito
   const PasswordInput = ({ label, value, onChange, show, setShow }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <label>{label}</label>
@@ -76,7 +79,6 @@ function CambiarPassword() {
         🔑 Cambiar Contraseña
       </h2>
 
-      {/* Mensajes */}
       {message && (
         <div
           style={{

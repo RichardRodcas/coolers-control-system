@@ -124,7 +124,7 @@ function Dashboard() {
       </header>
 
       {/* Menú lateral + contenido dinámico */}
-      <MenuPrincipal onNavigate={setVista}>
+      <MenuPrincipal onNavigate={setVista} vista={vista}>
         {renderVista()}
       </MenuPrincipal>
     </div>
