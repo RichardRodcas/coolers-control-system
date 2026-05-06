@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { salidaCoolers } from '../api.js';
 import { FaCheckCircle, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
 import { styles } from '../styles/styles.js';
-import BarcodeScanner from './BarcodeScanner.js';
+//import BarcodeScanner from './BarcodeScanner.js';
 import "../styles/App.css";
 import { CardContainer } from "./CardContainer.jsx";
 import { Card } from "./Card.jsx";
@@ -116,7 +116,7 @@ function SalidaCooler() {
 
         {/* Bloque 2: Scanner + input manual */}
         <Card>
-          <BarcodeScanner onDetected={agregarCodigo} />
+          {/* <BarcodeScanner onDetected={agregarCodigo} /> */}
 
           <div style={styles.formGroup}>
             <label style={styles.label}>Escriba código manualmente</label>

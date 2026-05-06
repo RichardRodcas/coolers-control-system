@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { getTrazabilidad } from '../api.js';
 import { styles } from '../styles/styles.js';
-import BarcodeScanner from './BarcodeScanner.js';
+//import BarcodeScanner from './BarcodeScanner.js';
 import "../styles/App.css";
 import { CardContainer } from "./CardContainer.jsx";
 import { Card } from "./Card.jsx";
@@ -89,7 +89,7 @@ function Trazabilidad() {
             </button>
           </div>
 
-          <BarcodeScanner onDetected={setCodigo} />
+          {/* <BarcodeScanner onDetected={setCodigo} /> */}
         </Card>
 
         {/* Bloque 2: Detalle actual */}
