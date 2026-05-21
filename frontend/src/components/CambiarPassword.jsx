@@ -3,9 +3,43 @@ import React, { useState } from "react";
 import { updatePassword } from "../api.js";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
-function CambiarPassword() {
-  console.log("Render CambiarPassword"); // se ejecuta en cada render
+// Componente reutilizable para inputs con ojito
+const PasswordInput = ({ label, value, onChange, show, setShow }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <label>{label}</label>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        border: "1px solid #ccc",
+        borderRadius: 4,
+        padding: "0 8px",
+        background: "#fff",
+      }}
+    >
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        required
+        style={{
+          flex: 1,
+          border: "none",
+          outline: "none",
+          padding: "8px",
+        }}
+      />
+      <span
+        onClick={() => setShow(!show)}
+        style={{ cursor: "pointer", color: "#555", marginLeft: 8 }}
+      >
+        {show ? <FaEyeSlash /> : <FaEye />}
+      </span>
+    </div>
+  </div>
+);
 
+function CambiarPassword() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showOld, setShowOld] = useState(false);
@@ -27,42 +61,6 @@ function CambiarPassword() {
       setError(err.response?.data?.message || "Error al actualizar contraseña");
     }
   };
-
-  // Componente reutilizable para inputs con ojito
-  const PasswordInput = ({ label, value, onChange, show, setShow }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <label>{label}</label>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          border: "1px solid #ccc",
-          borderRadius: 4,
-          padding: "0 8px",
-          background: "#fff",
-        }}
-      >
-        <input
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={onChange}
-          required
-          style={{
-            flex: 1,
-            border: "none",
-            outline: "none",
-            padding: "8px",
-          }}
-        />
-        <span
-          onClick={() => setShow(!show)}
-          style={{ cursor: "pointer", color: "#555", marginLeft: 8 }}
-        >
-          {show ? <FaEyeSlash /> : <FaEye />}
-        </span>
-      </div>
-    </div>
-  );
 
   return (
     <div
