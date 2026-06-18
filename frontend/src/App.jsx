@@ -1,9 +1,9 @@
 // src/App.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext.jsx';
 import "./styles/App.css";
-import { AppProvider } from './context/AppContext.js';   // ✅ Contexto global
+import { AppProvider, AppContext } from './context/AppContext.js';   // ✅ Contexto global
 
 // Formularios de autenticación
 import LoginForm from './components/auth/LoginForm';
@@ -24,6 +24,7 @@ import RecepcionMuestras from './components/RecepcionMuestras';
 import Indicadores from './components/Indicadores';
 import ForgotPassword from './components/auth/ForgotPassword.jsx';
 import ResetRequestsAdmin from './components/ResetRequestsAdmin.jsx'; // ✅ corregido
+import HistorialCoolers from './components/HistorialCoolers.jsx';
 
 // Dashboard específico de equipos
 import DashboardEquipos from './components/equipos/DashboardEquipos.jsx';
@@ -44,6 +45,14 @@ function Dashboard() {
   console.log("[Dashboard] Renderizando Dashboard");
   const { user, logout } = useAuth();
   const [vista, setVista] = useState('inventario');
+  const { openTrazabilidad, setOpenTrazabilidad } = useContext(AppContext);
+
+  useEffect(() => {
+    if (openTrazabilidad) {
+      setVista('trazabilidad');
+      setOpenTrazabilidad(false);
+    }
+  }, [openTrazabilidad, setOpenTrazabilidad]);
 
   const renderVista = () => {
     switch (vista) {
@@ -60,6 +69,8 @@ function Dashboard() {
         return <Inventario />;
       case 'trazabilidad':
         return <Trazabilidad />;
+      case 'historialCoolers':
+        return <HistorialCoolers />;
       case 'mantenimiento':
         return user?.role === 'admin' || user?.role === 'operador_salida'
           ? <MantenimientoCooler /> : <div>Acceso denegado</div>;

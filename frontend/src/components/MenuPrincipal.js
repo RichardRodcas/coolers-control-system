@@ -3,11 +3,12 @@ import { styles } from '../styles/styles.js';
 import { useAuth } from '../AuthContext.jsx';
 import "../styles/App.css";
 
+
+import { useState } from 'react';
+
 function MenuPrincipal({ onNavigate, children, vista }) {
   const { isAuthed, user } = useAuth();
-
-  console.log("[MenuPrincipal] isAuthed:", isAuthed, "user:", user);
-
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const userName = isAuthed ? user?.name : 'Invitado';
 
   const handleNavigate = (vista) => {
@@ -16,172 +17,111 @@ function MenuPrincipal({ onNavigate, children, vista }) {
     } else {
       console.log(`Navegación a ${vista} (sin handler)`);
     }
+    setDrawerOpen(false); // Cierra el drawer en móvil
   };
 
+  // Detecta si es móvil
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 900;
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      
-      {/* Sidebar lateral */}
+    <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
+      {/* Botón hamburguesa solo en móvil */}
+      <button
+        className="menu-hamburguesa"
+        style={{
+          position: 'fixed',
+          top: 18,
+          left: 18,
+          zIndex: 2001,
+          background: '#1976d2',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          padding: '10px 14px',
+          fontSize: 22,
+          display: 'block',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          cursor: 'pointer',
+          ...(drawerOpen ? { background: '#1565c0' } : {}),
+        }}
+        onClick={() => setDrawerOpen(!drawerOpen)}
+      >
+        ☰
+      </button>
+
+      {/* Sidebar lateral (drawer) */}
       <aside
+        className={drawerOpen ? 'sidebar open' : 'sidebar'}
         style={{
           width: 220,
           backgroundColor: '#f5f5f5',
           padding: 16,
           borderRight: '1px solid #ddd',
-          display: 'flex',
+          display: drawerOpen || !isMobile ? 'flex' : 'none',
           flexDirection: 'column',
+          position: isMobile ? 'fixed' : 'static',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          zIndex: 2000,
+          boxShadow: isMobile && drawerOpen ? '2px 0 12px rgba(0,0,0,0.18)' : 'none',
+          transition: 'all 0.3s',
         }}
       >
         <h3 style={{ marginBottom: 24, color: '#1976d2' }}>
           Bienvenido, {userName} {isAuthed && `(${user?.role})`}
         </h3>
-
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* ...botones de navegación igual que antes... */}
           {(user?.role === 'operador_ingreso' || user?.role === 'admin') && (
-            <button
-              style={{ ...styles.navBtn, ...styles.btnIngreso }}
-              onClick={() => handleNavigate('ingreso')}
-            >
-              🏢 Vigilancia
-            </button>
+            <button style={{ ...styles.navBtn, ...styles.btnIngreso }} onClick={() => handleNavigate('ingreso')}>🏢 Vigilancia</button>
           )}
-
           {(user?.role === 'operador_salida' || user?.role === 'admin') && (
-            <button
-              style={{ ...styles.navBtn, ...styles.btnSalida }}
-              onClick={() => handleNavigate('salida')}
-            >
-              🚚 Preparación de Materiales
-            </button>
+            <button style={{ ...styles.navBtn, ...styles.btnSalida }} onClick={() => handleNavigate('salida')}>🚚 Preparación de Materiales</button>
           )}
-
           {(user?.role === 'recepcion_muestras' || user?.role === 'admin') && (
-            <button
-              style={{ ...styles.navBtn, backgroundColor: "#6a1b9a", color: "#fff" }}
-              onClick={() => handleNavigate('recepcionMuestras')}
-            >
-              🧪 Recepción de Muestras
-            </button>
+            <button style={{ ...styles.navBtn, backgroundColor: "#6a1b9a", color: "#fff" }} onClick={() => handleNavigate('recepcionMuestras')}>🧪 Recepción de Muestras</button>
           )}
-
-          <button
-            style={{ ...styles.navBtn, ...styles.btnInventario }}
-            onClick={() => handleNavigate('inventario')}
-          >
-            📦 Inventario
-          </button>
-
-          <button
-            style={{ ...styles.navBtn, ...styles.btnTrazabilidad }}
-            onClick={() => handleNavigate('trazabilidad')}
-          >
-            🔎 Trazabilidad
-          </button>
-
-          {/* Bloque compartido entre admin y operador_salida */}
-          {['admin','operador_salida'].includes(user?.role) && (
-            <>
-              <button
-                style={{ ...styles.navBtn, ...styles.btnBuscarOT }}
-                onClick={() => handleNavigate('buscarPorOT')}
-              >
-                📋 Buscar por SS
-              </button>
-
-              <button
-                style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
-                onClick={() => handleNavigate('mantenimiento')}
-              >
-                🛠️ Mantenimiento Coolers
-              </button>
-
-              <button
-                style={{ ...styles.navBtn, ...styles.btnClientes }}
-                onClick={() => handleNavigate('registroClientes')}
-              >
-                👤 Clientes
-              </button>
-            </>
-          )}
-
-          {/* Bloque exclusivo de admin */}
-          {user?.role === 'admin' && (
-  <>
-    <button
-      style={{ ...styles.navBtn, backgroundColor: "#009688", color: "#fff" }}
-      onClick={() => handleNavigate('indicadores')}
-    >
-      📊 Indicadores
-    </button>
-
-    <button
-      style={{ ...styles.navBtn, ...styles.btnRegistro }}
-      onClick={() => handleNavigate('registroUsuario')}
-    >
-      📝 Registro de Usuario
-    </button>
-
-    <button
-      style={{ ...styles.navBtn, ...styles.btnMantenimiento }}
-      onClick={() => handleNavigate('mantenimientoUsuario')}
-    >
-      👥 Mantenimiento Usuario
-    </button>
-    
-    <button
-      style={{ ...styles.navBtn, backgroundColor: "#e91e63", color: "#fff", marginTop: 20 }}
-      onClick={() => handleNavigate('resetRequestsAdmin')}
-    >
-      ❓ Reset de Contraseñas
-    </button>
-
-    {/* Botones para equipos */}
-    {['admin','operador_equipos'].includes(user?.role) && (
-  <div style={{ marginTop: 20 }}>
-    <h3 style={{ color: "#4caf50" }}>⚙️ Control de Equipos</h3>
-    <button
-      style={{ ...styles.navBtn, backgroundColor: "#4caf50", color: "#fff" }}
-      onClick={() => handleNavigate('ingresoEquipos')}
-    >
-      ➕ Ingreso de Equipos
-    </button>
-    <button
-      style={{ ...styles.navBtn, backgroundColor: "#ff5722", color: "#fff" }}
-      onClick={() => handleNavigate('salidaEquipos')}
-    >
-      🚚 Salida de Equipos
-    </button>
-    <button
-      style={{ ...styles.navBtn, backgroundColor: "#2196f3", color: "#fff" }}
-      onClick={() => handleNavigate('inventarioEquipos')}
-    >
-      📦 Inventario de Equipos
-    </button>
-    <button
-      style={{ ...styles.navBtn, backgroundColor: "#9c27b0", color: "#fff" }}
-      onClick={() => handleNavigate('mantenimientoEquipos')}
-    >
-      🛠️ Mantenimiento de Equipos
-    </button>
-  </div>
-)}
-
-
-
-  </>
-)}
-
-
-          {isAuthed && (
-            <button
-              style={{ ...styles.navBtn, backgroundColor: "#ff9800", color: "#fff" }}
-              onClick={() => handleNavigate("cambiarPassword")}
-            >
-              🔑 Cambiar Contraseña
-            </button>
-          )}
+          <button style={{ ...styles.navBtn, ...styles.btnInventario }} onClick={() => handleNavigate('inventario')}>📦 Inventario</button>
+          <button style={{ ...styles.navBtn, ...styles.btnTrazabilidad }} onClick={() => handleNavigate('trazabilidad')}>🔎 Trazabilidad</button>
+          <button style={{ ...styles.navBtn, backgroundColor: "#0288d1", color: "#fff" }} onClick={() => handleNavigate('historialCoolers')}>📋 Historial de Coolers</button>
+          {['admin','operador_salida'].includes(user?.role) && (<>
+            <button style={{ ...styles.navBtn, ...styles.btnBuscarOT }} onClick={() => handleNavigate('buscarPorOT')}>📋 Buscar por SS</button>
+            <button style={{ ...styles.navBtn, ...styles.btnMantenimiento }} onClick={() => handleNavigate('mantenimiento')}>🛠️ Mantenimiento Coolers</button>
+            <button style={{ ...styles.navBtn, ...styles.btnClientes }} onClick={() => handleNavigate('registroClientes')}>👤 Clientes</button>
+          </>)}
+          {user?.role === 'admin' && (<>
+            <button style={{ ...styles.navBtn, backgroundColor: "#009688", color: "#fff" }} onClick={() => handleNavigate('indicadores')}>📊 Indicadores</button>
+            <button style={{ ...styles.navBtn, ...styles.btnRegistro }} onClick={() => handleNavigate('registroUsuario')}>📝 Registro de Usuario</button>
+            <button style={{ ...styles.navBtn, ...styles.btnMantenimiento }} onClick={() => handleNavigate('mantenimientoUsuario')}>👥 Mantenimiento Usuario</button>
+            <button style={{ ...styles.navBtn, backgroundColor: "#e91e63", color: "#fff", marginTop: 20 }} onClick={() => handleNavigate('resetRequestsAdmin')}>❓ Reset de Contraseñas</button>
+            {['admin','operador_equipos'].includes(user?.role) && (<div style={{ marginTop: 20 }}>
+              <h3 style={{ color: "#4caf50" }}>⚙️ Control de Equipos</h3>
+              <button style={{ ...styles.navBtn, backgroundColor: "#4caf50", color: "#fff" }} onClick={() => handleNavigate('ingresoEquipos')}>➕ Ingreso de Equipos</button>
+              <button style={{ ...styles.navBtn, backgroundColor: "#ff5722", color: "#fff" }} onClick={() => handleNavigate('salidaEquipos')}>🚚 Salida de Equipos</button>
+              <button style={{ ...styles.navBtn, backgroundColor: "#2196f3", color: "#fff" }} onClick={() => handleNavigate('inventarioEquipos')}>📦 Inventario de Equipos</button>
+              <button style={{ ...styles.navBtn, backgroundColor: "#9c27b0", color: "#fff" }} onClick={() => handleNavigate('mantenimientoEquipos')}>🛠️ Mantenimiento de Equipos</button>
+            </div>)}
+          </>)}
+          {isAuthed && (<button style={{ ...styles.navBtn, backgroundColor: "#ff9800", color: "#fff" }} onClick={() => handleNavigate("cambiarPassword")}>🔑 Cambiar Contraseña</button>)}
         </nav>
       </aside>
+
+      {/* Fondo oscuro para cerrar el drawer en móvil */}
+      {drawerOpen && isMobile && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.25)',
+            zIndex: 1000,
+          }}
+        />
+      )}
 
       {/* Contenido principal */}
       <main style={{ flex: 1, padding: 24 }}>

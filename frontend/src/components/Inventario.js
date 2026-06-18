@@ -1,12 +1,12 @@
 // src/components/Inventario.jsx
 import React, { useEffect, useState, useCallback, useContext } from 'react';
-import { getCoolers } from '../api.js'; 
+import { getCoolers, getTrazabilidad } from '../api.js'; 
 import { styles } from '../styles/styles.js';
 import "../styles/App.css";
 import { AppContext } from '../context/AppContext.js';   // ✅ Importamos el contexto
 
 function Inventario() {
-  const { inventario, setInventario } = useContext(AppContext);  // ✅ Estado global
+  const { inventario, setInventario, setTrazabilidad, setOpenTrazabilidad } = useContext(AppContext);  // ✅ Estado global
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,33 @@ function Inventario() {
     }
   }, [setInventario]);
 
+  const exportarCSV = () => {
+    if (!inventario || inventario.length === 0) {
+      alert('No hay datos para exportar');
+      return;
+    }
+
+    const headers = ['Código', 'Cliente', 'Color', 'Estado', 'Disponibilidad', 'Observación'];
+    const rows = inventario.map((c) => [
+      c.codigo,
+      c.cliente || '-',
+      c.color || '-',
+      c.estado || '-',
+      c.disponibilidad || '-',
+      c.observacion || '-',
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.map((cell) => `"${cell}"`).join(','))].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventario_coolers_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     // Solo cargamos si inventario está vacío, para no sobreescribir al volver
     if (!inventario || inventario.length === 0) {
@@ -44,6 +71,35 @@ function Inventario() {
       : true;
     return matchEstado && matchDisponibilidad;
   });
+
+  const handleRowClick = async (codigo) => {
+    if (!codigo) return;
+    try {
+      const codigoNorm = String(codigo).trim().toUpperCase();
+      const data = await getTrazabilidad(codigoNorm);
+
+      if (!data || !data.detalle) {
+        setTrazabilidad({ detalle: null, historial: [], error: `No se encontró el cooler ${codigoNorm}` });
+      } else {
+        const ultimoEvento = data.historial?.[0] || {};
+        const detalle = {
+          ...data.detalle,
+          cliente: ultimoEvento.cliente || data.detalle.cliente,
+          ordenTrabajo: ultimoEvento.ordenTrabajo || data.detalle.ordenTrabajo,
+          ultimo_movimiento: ultimoEvento.fecha || data.detalle.ultimo_movimiento,
+          ultimo_mantenimiento: data.detalle.ultimo_mantenimiento
+        };
+        setTrazabilidad({ detalle, historial: data.historial || [], error: '' });
+      }
+
+      // Indica al dashboard que abra la vista de trazabilidad
+      setOpenTrazabilidad(true);
+    } catch (err) {
+      console.error('Error cargando trazabilidad desde Inventario', err);
+      setTrazabilidad({ detalle: null, historial: [], error: 'Error al cargar trazabilidad' });
+      setOpenTrazabilidad(true);
+    }
+  };
 
   const contadores = {
     total: inventario.length,
@@ -116,6 +172,12 @@ function Inventario() {
             >
               Refrescar
             </button>
+            <button
+              style={{ ...styles.primaryBtn, backgroundColor: '#28a745', marginLeft: 8 }}
+              onClick={exportarCSV}
+            >
+              Exportar CSV
+            </button>
           </div>
         </div>
       </div>
@@ -132,6 +194,7 @@ function Inventario() {
             <thead>
               <tr>
                 <th style={styles.th}>Código</th>
+                <th style={styles.th}>Cliente</th>
                 <th style={styles.th}>Color</th>
                 <th style={styles.th}>Estado</th>
                 <th style={styles.th}>Disponibilidad</th>
@@ -140,19 +203,29 @@ function Inventario() {
             </thead>
             <tbody>
               {filtrados.map((c) => (
-                <tr key={c.codigo} style={{ background: colorFila(c.estado) }}>
+                <tr
+                  key={c.codigo}
+                  onClick={() => handleRowClick(c.codigo)}
+                  style={{
+                    background: colorFila(c.estado),
+                    cursor: 'pointer'
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = '#e8f0ff')}
+                  onMouseOut={(e) => (e.currentTarget.style.background = colorFila(c.estado))}
+                >
                   <td style={styles.td}>{c.codigo}</td>
+                  <td style={styles.td}>{c.cliente || "-"}</td>
                   <td style={styles.td}>{c.color || "-"}</td>
                   <td style={styles.td}>{c.estado}</td>
                   <td
                     style={{
-                    ...styles.td,
-                     color: c.disponibilidad?.toLowerCase() === "campo" ? "orange" : "inherit",
+                      ...styles.td,
+                      color: c.disponibilidad?.toLowerCase() === "campo" ? "orange" : "inherit",
                       fontWeight: c.disponibilidad?.toLowerCase() === "campo" ? "bold" : "normal"
                     }}
-                     >
-                     {c.disponibilidad || "-"}
-                   </td>
+                  >
+                    {c.disponibilidad || "-"}
+                  </td>
 
                   <td style={styles.td}>{c.observacion || "-"}</td>
                 </tr>

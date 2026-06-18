@@ -405,7 +405,19 @@ app.delete('/coolers/:codigo', requireAuth(['admin']), async (req, res) => {
 // Inventario completo
 app.get('/coolers', requireAuth(['admin','operador_ingreso','operador_salida']), async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM vw_inventario_coolers');
+    const result = await pool.query(
+      `SELECT v.*, (
+         SELECT cl.razon_social
+         FROM movimientos_cooler m
+         LEFT JOIN clientes cl ON m.hacia_cliente_ruc = cl.ruc
+         WHERE m.cooler_codigo = v.codigo
+           AND m.hacia_cliente_ruc IS NOT NULL
+         ORDER BY m.fecha DESC
+         LIMIT 1
+       ) AS cliente
+       FROM vw_inventario_coolers v`
+    );
+
     res.json({ ok: true, data: result.rows });
   } catch (err) {
     console.error(err);
@@ -426,6 +438,69 @@ app.get('/coolers/fuera', requireAuth(['admin','operador_ingreso','operador_sali
     res.status(500).json({ ok: false, mensaje: 'Error cargando coolers en campo' });
   }
 });
+
+// Historial de ingresos con filtro por fechas
+app.get(
+  '/coolers/historial/ingresos',
+  requireAuth(),
+  async (req, res) => {
+    const { fechaInicio, fechaFin } = req.query;
+
+    try {
+      let query = `
+        SELECT 
+          m.id,
+          m.cooler_codigo AS codigo,
+          m.tipo,
+          -- Obtener el último cliente asociado a este cooler (última salida con cliente)
+          (SELECT cl.razon_social
+             FROM movimientos_cooler m2
+             LEFT JOIN clientes cl ON m2.hacia_cliente_ruc = cl.ruc
+            WHERE m2.cooler_codigo = m.cooler_codigo
+              AND m2.hacia_cliente_ruc IS NOT NULL
+            ORDER BY m2.fecha DESC
+            LIMIT 1
+          ) AS cliente,
+          m.observacion AS detalle,
+          m.fecha,
+          m.realizado_por,
+          m.estado_resultante,
+          m.disponibilidad_resultante,
+          m.orden_trabajo
+        FROM movimientos_cooler m
+        WHERE m.tipo = 'Ingreso'
+      `;
+
+      const params = [];
+      let paramCount = 1;
+
+      if (fechaInicio) {
+        query += ` AND DATE(m.fecha) >= $${paramCount}::date`;
+        params.push(fechaInicio);
+        paramCount++;
+      }
+
+      if (fechaFin) {
+        query += ` AND DATE(m.fecha) <= $${paramCount}::date`;
+        params.push(fechaFin);
+        paramCount++;
+      }
+
+      query += ` ORDER BY m.fecha DESC`;
+
+      const result = await pool.query(query, params);
+
+      res.json({
+        ok: true,
+        data: result.rows,
+        total: result.rows.length
+      });
+    } catch (err) {
+      console.error('Error en /coolers/historial/ingresos:', err);
+      res.status(500).json({ ok: false, mensaje: 'Error cargando historial de ingresos' });
+    }
+  }
+);
 
 // Trazabilidad (movimientos + mantenimientos + estado actual)
 app.get(

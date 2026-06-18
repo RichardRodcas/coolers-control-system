@@ -300,7 +300,7 @@ const movimientosEquipo = async (req, res) => {
   }
 };
 
-// ------------------ Exportación en ESM ------------------
+// ================== Exportación en ESM ==================
 export default {
   crearEquipo,
   listarEquipos,

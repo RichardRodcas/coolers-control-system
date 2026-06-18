@@ -80,6 +80,15 @@ export const getDetalleCooler = async (codigo) => {
   return res.data?.data || null;
 };
 
+// ======================= HISTORIAL =======================
+export const getHistorialIngresos = async (fechaInicio, fechaFin) => {
+  const params = {};
+  if (fechaInicio) params.fechaInicio = fechaInicio;
+  if (fechaFin) params.fechaFin = fechaFin;
+  const res = await api.get("/coolers/historial/ingresos", { params });
+  return res.data?.data || [];
+};
+
 // ======================= VALIDACIÓN DE CÓDIGOS =======================
 export const validateCode = async (code) => {
   const res = await api.post("/api/validate-code", { code });

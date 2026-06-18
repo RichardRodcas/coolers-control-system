@@ -21,6 +21,8 @@ export function AppProvider({ children }) {
 
   // Estados globales
   const [trazabilidad, setTrazabilidad] = useState({ detalle: null, historial: [], error: '' });
+  // Flag para abrir la vista de trazabilidad desde otros componentes
+  const [openTrazabilidad, setOpenTrazabilidad] = useState(false);
   const [buscarOT, setBuscarOT] = useState({ resultados: [], error: '' });
   const [inventario, setInventario] = useState([]);
   const [ingreso, setIngreso] = useState({ codigos: [], feedback: null });
@@ -34,6 +36,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       user, setUser, // 👈 ahora disponible en todos los componentes
       trazabilidad, setTrazabilidad,
+      openTrazabilidad, setOpenTrazabilidad,
       buscarOT, setBuscarOT,
       inventario, setInventario,
       ingreso, setIngreso,

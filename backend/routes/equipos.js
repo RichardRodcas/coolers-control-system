@@ -42,5 +42,5 @@ router.get('/equipos/inventario', equiposController.inventarioEquipos);
 // ------------------ Movimientos de un equipo ------------------
 router.get('/equipos/:codigo/movimientos', equiposController.movimientosEquipo);
 
-// ------------------ Exportación en ESM ------------------
+// ================== Exportación en ESM ==================
 export default router;
