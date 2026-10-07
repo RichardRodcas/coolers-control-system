@@ -20,7 +20,7 @@ export default function RegisterForm({ onSuccess }) {
     setSuccess('');
 
     try {
-      const res = await fetch('https://192.168.0.95:4000/auth/register', {
+      const res = await fetch('https://192.168.0.102:4000/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)

@@ -15,8 +15,8 @@ const __dirname = path.dirname(__filename);
 
 // Certificados
 const options = {
-  key: fs.readFileSync(path.join(__dirname, '192.168.0.95-key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, '192.168.0.95.pem'))
+  key: fs.readFileSync(path.join(__dirname, 'server-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'server-cert.pem'))
 };
 
 // .env
@@ -25,7 +25,7 @@ dotenv.config({ path: new URL('./.env', import.meta.url) });
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: ['http://192.168.0.95:3000', 'https://192.168.0.95:3000'],
+  origin: ['http://192.168.0.102:3000', 'https://192.168.0.102:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -414,7 +414,15 @@ app.get('/coolers', requireAuth(['admin','operador_ingreso','operador_salida']),
            AND m.hacia_cliente_ruc IS NOT NULL
          ORDER BY m.fecha DESC
          LIMIT 1
-       ) AS cliente
+       ) AS cliente,
+       (
+         SELECT m.orden_trabajo
+         FROM movimientos_cooler m
+         WHERE m.cooler_codigo = v.codigo
+           AND m.orden_trabajo IS NOT NULL
+         ORDER BY m.fecha DESC
+         LIMIT 1
+       ) AS ss
        FROM vw_inventario_coolers v`
     );
 
@@ -1023,10 +1031,10 @@ app.post('/auth/reset-tokens', (req, res) => {
 const PORT = process.env.SERVER_PORT || 5000;
 
 https.createServer({
-  key: fs.readFileSync(new URL('./192.168.0.95-key.pem', import.meta.url)),
-  cert: fs.readFileSync(new URL('./192.168.0.95.pem', import.meta.url))
+  key: fs.readFileSync(new URL('./server-key.pem', import.meta.url)),
+  cert: fs.readFileSync(new URL('./server-cert.pem', import.meta.url))
 }, app).listen(PORT, () => {
-  console.log(`Servidor en https://192.168.0.95:${PORT}`);
+  console.log(`Servidor en https://192.168.0.102:${PORT}`);
 });
 
 

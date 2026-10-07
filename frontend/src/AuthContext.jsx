@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   // Login
   const login = async (email, password) => {
     try {
-      const res = await fetch("https://192.168.0.95:4000/auth/login", {
+      const res = await fetch("https://192.168.0.102:4000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
   // Logout
   const logout = async () => {
     try {
-      await fetch("https://192.168.0.95:4000/auth/logout", {
+      await fetch("https://192.168.0.102:4000/auth/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   const refresh = async () => {
     console.log("[REFRESH] Intentando renovar sesión...");
     try {
-      const res = await fetch("https://192.168.0.95:4000/auth/refresh", {
+      const res = await fetch("https://192.168.0.102:4000/auth/refresh", {
         method: "POST",
         credentials: "include",
       });

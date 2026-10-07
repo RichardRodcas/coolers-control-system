@@ -21,8 +21,8 @@ const __dirname = path.dirname(__filename);
 
 // Certificados
 const options = {
-  key: fs.readFileSync(path.join(__dirname, '192.168.0.95-key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, '192.168.0.95.pem'))
+  key: fs.readFileSync(path.join(__dirname, 'server-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'server-cert.pem'))
 };
 
 // .env
@@ -36,7 +36,7 @@ app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://192.168.0.95:3000', 'https://192.168.0.95:3000'],
+  origin: ['http://192.168.0.102:3000', 'https://192.168.0.102:3000'],
   credentials: true
 }));
 
@@ -177,5 +177,5 @@ app.put("/auth/update-password", requireAuth(), async (req, res) => {
 const PORT = process.env.AUTH_PORT || 4000;
 
 https.createServer(options, app).listen(PORT, () => {
-  console.log(`Servidor en https://192.168.0.95:${PORT}`);
+  console.log(`Servidor en https://192.168.0.102:${PORT}`);
 });

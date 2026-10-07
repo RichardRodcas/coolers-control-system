@@ -7,7 +7,7 @@ function ResetRequestsAdmin() {
 
   // Cargar solicitudes al montar
   useEffect(() => {
-    fetch("https://192.168.0.95:5000/admin/reset-requests")
+    fetch("https://192.168.0.102:5000/admin/reset-requests")
       .then(res => res.json())
       .then(data => setRequests(data))
       .catch(() => setMessage("Error al cargar solicitudes"));
@@ -15,7 +15,7 @@ function ResetRequestsAdmin() {
 
   const handleReset = async (email) => {
     try {
-      const res = await fetch("https://192.168.0.95:5000/admin/reset-password", {
+      const res = await fetch("https://192.168.0.102:5000/admin/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, nuevaPassword: newPassword }),

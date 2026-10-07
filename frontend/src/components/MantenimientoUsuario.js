@@ -23,7 +23,7 @@ export default function MantenimientoUsuario() {
         return;
       }
       try {
-        const res = await fetch('https://192.168.0.95:5000/auth/usuarios', { headers: authHeaders });
+        const res = await fetch('https://192.168.0.102:5000/auth/usuarios', { headers: authHeaders });
         if (!res.headers.get('content-type')?.includes('application/json')) {
           throw new Error('El servidor no devolvió JSON');
         }
@@ -44,7 +44,7 @@ export default function MantenimientoUsuario() {
     }
     if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
     try {
-      const res = await fetch(`https://192.168.0.95:5000/auth/usuarios/${email}`, {
+      const res = await fetch(`https://192.168.0.102:5000/auth/usuarios/${email}`, {
         method: 'DELETE',
         headers: authHeaders
       });
@@ -74,7 +74,7 @@ export default function MantenimientoUsuario() {
         role: usuarioActualizado.role
       };
 
-      const res = await fetch(`https://192.168.0.95:5000/auth/usuarios/${usuarioActualizado.email}`, {
+      const res = await fetch(`https://192.168.0.102:5000/auth/usuarios/${usuarioActualizado.email}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(payload)

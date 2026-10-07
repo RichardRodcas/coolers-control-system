@@ -25,7 +25,7 @@ const RegistroClientes = () => {
         return;
       }
       try {
-        const res = await fetch("https://192.168.0.95:5000/clientes", {
+        const res = await fetch("https://192.168.0.102:5000/clientes", {
           headers: authHeaders,
           credentials: "include",
         });
@@ -50,8 +50,8 @@ const RegistroClientes = () => {
     e.preventDefault();
     try {
       const url = isEditing
-        ? `https://192.168.0.95:5000/clientes/${form.ruc}`
-        : "https://192.168.0.95:5000/clientes";
+        ? `https://192.168.0.102:5000/clientes/${form.ruc}`
+        : "https://192.168.0.102:5000/clientes";
       const method = isEditing ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
@@ -79,7 +79,7 @@ const RegistroClientes = () => {
 
   const handleDelete = async (ruc) => {
     try {
-      const res = await fetch(`https://192.168.0.95:5000/clientes/${ruc}`, {
+      const res = await fetch(`https://192.168.0.102:5000/clientes/${ruc}`, {
         method: "DELETE",
         headers: authHeaders,
         credentials: "include",

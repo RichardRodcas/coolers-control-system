@@ -1,8 +1,8 @@
 // src/api.js
 import axios from "axios";
 
-const API_URL = "https://192.168.0.95:5000";   // negocio (server.js)
-const AUTH_URL = "https://192.168.0.95:4000";  // autenticación (authServer.js)
+const API_URL = "https://192.168.0.102:5000";   // negocio (server.js)
+const AUTH_URL = "https://192.168.0.102:4000";  // autenticación (authServer.js)
 
 // ======================= INSTANCIAS =======================
 // Instancia para negocio

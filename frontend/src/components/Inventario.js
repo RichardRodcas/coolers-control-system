@@ -29,15 +29,23 @@ function Inventario() {
   }, [setInventario]);
 
   const exportarCSV = () => {
-    if (!inventario || inventario.length === 0) {
-      alert('No hay datos para exportar');
+    const registros = filtrados;
+
+    if (!registros || registros.length === 0) {
+      alert('No hay datos para exportar con los filtros actuales');
       return;
     }
 
-    const headers = ['Código', 'Cliente', 'Color', 'Estado', 'Disponibilidad', 'Observación'];
-    const rows = inventario.map((c) => [
+    const filtros = [
+      filtroEstado ? `estado_${filtroEstado}` : null,
+      filtroDisponibilidad ? `disp_${filtroDisponibilidad.replace(/\s+/g, '_')}` : null,
+    ].filter(Boolean);
+
+    const headers = ['Código', 'Cliente', 'SS', 'Color', 'Estado', 'Disponibilidad', 'Observación'];
+    const rows = registros.map((c) => [
       c.codigo,
       c.cliente || '-',
+      c.ss || c.ultima_ot || c.ordenTrabajo || '-',
       c.color || '-',
       c.estado || '-',
       c.disponibilidad || '-',
@@ -50,7 +58,8 @@ function Inventario() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `inventario_coolers_${new Date().toISOString().split('T')[0]}.csv`;
+    const nombreBase = filtros.length > 0 ? `inventario_coolers_${filtros.join('_')}` : 'inventario_coolers';
+    a.download = `${nombreBase}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -195,6 +204,7 @@ function Inventario() {
               <tr>
                 <th style={styles.th}>Código</th>
                 <th style={styles.th}>Cliente</th>
+                <th style={styles.th}>SS</th>
                 <th style={styles.th}>Color</th>
                 <th style={styles.th}>Estado</th>
                 <th style={styles.th}>Disponibilidad</th>
@@ -215,6 +225,7 @@ function Inventario() {
                 >
                   <td style={styles.td}>{c.codigo}</td>
                   <td style={styles.td}>{c.cliente || "-"}</td>
+                  <td style={styles.td}>{c.ss || c.ultima_ot || c.ordenTrabajo || "-"}</td>
                   <td style={styles.td}>{c.color || "-"}</td>
                   <td style={styles.td}>{c.estado}</td>
                   <td

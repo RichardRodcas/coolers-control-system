@@ -13,7 +13,7 @@ function SalidaEquipos() {
   useEffect(() => {
     const fetchClientes = async () => {
       try {
-        const res = await axios.get('https://192.168.0.95:5000/clientes', {
+        const res = await axios.get('https://192.168.0.102:5000/clientes', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         // res.data ya es JSON
