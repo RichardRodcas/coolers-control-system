@@ -8,6 +8,9 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
 import { pool } from './db.js';        // 👈 Usamos el pool centralizado
 import { requireAuth } from './middleware/auth.js';
+import multer from 'multer';
+
+import XLSX from 'xlsx';
 
 // Definir __dirname en ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -1009,6 +1012,8 @@ app.get('/admin/reset-requests', async (req, res) => {
     res.status(500).json({ mensaje: 'Error al obtener solicitudes' });
   }
 });
+
+// Modulo para exportar checklist
 
 
 // ======================= Reset global de tokens =======================
